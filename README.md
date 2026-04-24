@@ -49,11 +49,11 @@ dev updates ARCH.md + feat.md + test_case.md + commits
 ## Install
 
 ```bash
-# From GitHub
-npx reskill install github:<your-org>/vibe-well -g
+# Global install (available across all projects)
+npx reskill install github:yuanchuziwen/vibe-well -g
 
-# From registry (after publish)
-npx reskill install vibe-well -g
+# Project-local install
+npx reskill install github:yuanchuziwen/vibe-well
 ```
 
 ---

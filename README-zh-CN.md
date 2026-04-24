@@ -1,6 +1,20 @@
-# Feature Workflow — 中文概览
+# vibe-well — 中文概览
 
-> 本文档是 `feature-workflow/` 下各 SKILL.md 的中文翻译与说明，供人工 review 使用。
+[English](./README.md)
+
+## 安装
+
+```bash
+# 全局安装（所有项目可用）
+npx reskill install github:yuanchuziwen/vibe-well -g
+
+# 项目本地安装
+npx reskill install github:yuanchuziwen/vibe-well
+```
+
+---
+
+> 本文档是各 SKILL.md 的中文说明，供人工 review 使用。
 > 以英文原文为准，如有出入请修改英文版。
 
 ---
