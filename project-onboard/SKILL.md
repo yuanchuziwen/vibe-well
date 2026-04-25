@@ -1,34 +1,34 @@
 ---
 name: project-onboard
 version: 1.0.0
-description: This skill should be used when the user wants to "onboard a new project", "initialize project docs", "set up ARCH.md", "update project documentation", "sync docs with code", "check if docs are up to date", "regenerate architecture docs", or when any other skill detects that ARCH.md / feat.md are missing or stale. Explores the codebase, creates or updates the three-file documentation system (CLAUDE.md / ARCH.md / feat.md), and tracks doc freshness via git SHA.
+description: 当用户想要"初始化新项目"、"初始化项目文档"、"设置 ARCH.md"、"更新项目文档"、"同步文档与代码"、"检查文档是否最新"、"重新生成架构文档"，或任何其他技能检测到 ARCH.md / feat.md 缺失或过期时使用此技能。探索代码库，创建或更新三文件文档系统（CLAUDE.md / ARCH.md / feat.md），并通过 git SHA 跟踪文档新鲜度。
 ---
 
 # Project Onboard
 
-Explores a codebase and creates or updates the project documentation system. Designed to be called at the start of any feature workflow, or manually when docs feel stale.
+探索代码库并创建或更新项目文档系统。设计用于在任何功能工作流开始时调用，或在文档感觉过期时手动调用。
 
-## Document System
+## 文档系统
 
-Four files, each with a specific role:
+四个文件，各有特定职责：
 
-| File | Purpose | Audience |
+| 文件 | 用途 | 受众 |
 |---|---|---|
-| `CLAUDE.md` | Entry index — pointers + freshness status | Claude Code (auto-loaded) |
-| `ARCH.md` | Architecture — modules, data model, invariants, request flows | Claude agents doing planning/review |
-| `feat.md` | Feature map — every user-facing feature with entry point + file location | Claude agents doing plan + test |
-| `test_case.md` | Functional test cases mirroring feat.md — one TC set per feature | tester member, regression-test skill |
+| `CLAUDE.md` | 入口索引——指针 + 新鲜度状态 | Claude Code（自动加载）|
+| `ARCH.md` | 架构——模块、数据模型、不变量、请求流 | 做规划/审查的 Claude Agent |
+| `feat.md` | 功能地图——每个用户可见功能及其入口点和文件位置 | 做计划和测试的 Claude Agent |
+| `test_case.md` | 与 feat.md 对应的功能测试用例——每个功能一组 TC | tester 成员、regression-test 技能 |
 
-All four live at the project root unless a different convention is already established.
+除非已有其他既定约定，四个文件均存放在项目根目录。
 
-`test_case.md` generation strategy:
-- **Full scan (first run)**: generate a bootstrapped version from feat.md — one TC per feature row covering happy path + one key error path. Mark every TC with `bootstrapped` in the Notes column. These are mechanically inferred from routes and components, not verified against product requirements — they are a starting point, not ground truth.
-- **Incremental update**: do not add new TCs (that is tester's job). Only maintain consistency with feat.md: deprecate TCs for removed features, update entry points for changed routes.
-- **Never overwrite tester-authored TCs** — if a TC row does not have `bootstrapped` in Notes, treat it as human-authored and preserve it exactly.
+`test_case.md` 生成策略：
+- **全量扫描（首次运行）**：从 feat.md 生成初始版本——每个功能行生成一个覆盖正常路径 + 一个关键错误路径的 TC。所有 TC 在 Notes 列标注 `bootstrapped`。这些是从路由和组件签名机械推断的，未经产品需求验证——只是起点，不代表基准事实。
+- **增量更新**：不新增 TC（那是 tester 的工作）。仅维护与 feat.md 的一致性：废弃已删除功能的 TC、更新路由变更的入口点。
+- **不覆盖 tester 编写的 TC** — 如果某个 TC 行在 Notes 列没有 `bootstrapped`，视为人工编写并完整保留。
 
-## Freshness Detection
+## 新鲜度检测
 
-Each document carries a frontmatter header:
+每份文档携带一个 frontmatter 头部：
 
 ```yaml
 ---
@@ -39,152 +39,152 @@ dirty_files: []
 ---
 ```
 
-To check freshness:
-1. Read the `git_sha` from `ARCH.md` frontmatter
-2. Run `git diff <sha> HEAD --name-only -- src/` to list changed files since last sync
-3. Run `git status --short` to detect uncommitted changes
-4. Classify result:
+检查新鲜度：
+1. 读取 `ARCH.md` frontmatter 中的 `git_sha`
+2. 运行 `git diff <sha> HEAD --name-only -- src/` 列出上次同步后的变更文件
+3. 运行 `git status --short` 检测未提交的变更
+4. 分类结果：
 
-| Status | Meaning |
+| 状态 | 含义 |
 |---|---|
-| ✅ Current | No changes since `git_sha`, working tree clean |
-| ⚠️ Stale | Commits exist since `git_sha` — list changed files |
-| 🔶 Dirty | Uncommitted changes exist — note but do not block |
+| ✅ 最新 | 自 `git_sha` 以来无变更，工作目录干净 |
+| ⚠️ 过期 | 自 `git_sha` 以来存在提交——列出变更文件 |
+| 🔶 有未提交变更 | 存在未提交的变更——记录但不阻断 |
 
-Uncommitted changes: record `git_dirty: true` and list files in `dirty_files`. Do NOT force a commit or stash — that is the user's decision.
+未提交变更：记录 `git_dirty: true` 并在 `dirty_files` 中列出文件。**不强制提交或 stash**——那是用户的决定。
 
-## Update Strategy
+## 更新策略
 
-Use incremental update by default. Escalate to full regeneration when needed.
+默认使用增量更新，在必要时升级到全量重新生成。
 
-**Incremental** (fast, preserves manual annotations):
-- Compute `git diff <last_sha> HEAD --name-only`
-- Only re-examine files in the diff
-- Update affected sections in ARCH.md and feat.md
-- Preserve all other content
+**增量**（快速，保留手工注释）：
+- 计算 `git diff <last_sha> HEAD --name-only`
+- 只重新检查 diff 中的文件
+- 更新 ARCH.md 和 feat.md 中受影响的章节
+- 保留所有其他内容
 
-**Full regeneration** (escalate automatically when):
-- ARCH.md or feat.md does not exist yet
-- Diff touches > 20 files
-- Diff includes structural files: `package.json`, `pnpm-lock.yaml`, DB schema files, `tsconfig.json`, main entry point
-- User explicitly requests it ("regenerate docs", "full update")
+**全量重新生成**（在以下情况自动升级）：
+- ARCH.md 或 feat.md 尚不存在
+- diff 涉及超过 20 个文件
+- diff 包含结构性文件：`package.json`、`pnpm-lock.yaml`、数据库 schema 文件、`tsconfig.json`、主入口点
+- 用户明确请求（"重新生成文档"、"全量更新"）
 
-## Workflow
+## 工作流
 
-### Step 1 — Detect state
+### Step 1 — 检测状态
 
 ```bash
-# Check doc existence
+# 检查文档是否存在
 ls ARCH.md feat.md CLAUDE.md 2>/dev/null
 
-# If ARCH.md exists, read its git_sha then:
+# 如果 ARCH.md 存在，读取其 git_sha，然后：
 git diff <sha> HEAD --name-only -- src/
 git status --short
 ```
 
-Report the current state to the user in one line:
-- "Docs missing — will do full scan"
-- "Docs stale — N files changed since last sync, doing incremental update"
-- "Docs current — no changes detected ✅"
-- "Docs current but working tree is dirty — N uncommitted files noted"
+向用户用一行报告当前状态：
+- "文档缺失——将进行全量扫描"
+- "文档过期——自上次同步以来 N 个文件变更，进行增量更新"
+- "文档最新——未检测到变更 ✅"
+- "文档最新但工作目录有未提交变更——已记录 N 个未提交文件"
 
-🛑 **Gate**: If docs are current, ask the user whether to proceed. If stale or missing, proceed automatically.
+🛑 **Gate**：如果文档最新，询问用户是否继续。如果过期或缺失，自动继续。
 
-### Step 2 — Check test_case.md (incremental only)
+### Step 2 — 检查 test_case.md（仅增量）
 
-When doing an incremental update, check if any feat.md rows being removed or changed have corresponding TCs in test_case.md:
+进行增量更新时，检查 feat.md 中被删除或修改的行在 test_case.md 中是否有对应 TC：
 
 ```bash
-# Check if test_case.md exists
+# 检查 test_case.md 是否存在
 ls test_case.md 2>/dev/null
 ```
 
-If it exists and feat.md rows are being removed: find the matching TCs and move them to the `## Deprecated` section with the current date and reason.
+如果存在且 feat.md 行被删除：找到匹配的 TC 并将其移入 `## 已废弃` 章节，注明当前日期和原因。
 
-If feat.md rows are being modified (route changed, component renamed): update the TC `Entry Point` column to match.
+如果 feat.md 行被修改（路由变更、组件重命名）：更新 TC 的 `Entry Point` 列以匹配。
 
-Do not add new TCs during project-onboard — that is tester's job during feature-exec.
+project-onboard 阶段不新增 TC——那是 feature-exec 中 tester 的工作。
 
 ---
 
-### Step 3 — Explore (full scan only)
+### Step 3 — 探索（仅全量扫描）
 
-For full scan, **read `references/explore-guide.md` now and follow its exploration sequence.** Key targets summary:
+全量扫描时，**立即读取 `references/explore-guide.md` 并按其探索顺序执行。** 关键目标摘要：
 
-- Directory structure (top 2 levels)
-- `package.json` / `pnpm-workspace.yaml` — tech stack, scripts
-- Entry points (`src/index.ts`, `app.ts`, `main.ts`, `server.ts`)
-- Route files — all API endpoints
-- DB schema files — tables, columns, relations
-- Service / repository layer — core business logic boundaries
-- Frontend: component tree, page routes
-- Existing docs (`README.md`, `docs/`)
-- CI/CD config (`.github/`, `Dockerfile`) for deployment context
+- 目录结构（前 2 层）
+- `package.json` / `pnpm-workspace.yaml` — 技术栈、脚本
+- 入口点（`src/index.ts`、`app.ts`、`main.ts`、`server.ts`）
+- 路由文件——所有 API 端点
+- 数据库 schema 文件——表、列、关系
+- Service / Repository 层——核心业务逻辑边界
+- 前端：组件树、页面路由
+- 现有文档（`README.md`、`docs/`）
+- CI/CD 配置（`.github/`、`Dockerfile`）用于部署上下文
 
-### Step 3 — Explore (incremental only)
+### Step 3 — 探索（仅增量）
 
-Read only the files in the diff plus their direct callers/dependents. Identify which sections of ARCH.md and feat.md are affected.
+只读取 diff 中的文件及其直接调用方/依赖方。确认 ARCH.md 和 feat.md 中哪些章节受影响。
 
-### Step 4 — Generate / update documents
+### Step 4 — 生成/更新文档
 
-Generate in this order: ARCH.md → feat.md → test_case.md → CLAUDE.md (CLAUDE.md is last because it references the others).
+按此顺序生成：ARCH.md → feat.md → test_case.md → CLAUDE.md（CLAUDE.md 最后，因为它引用其他文件）。
 
-**Read `references/doc-templates.md` now for the full format of each document before writing.**
+**立即读取 `references/doc-templates.md` 获取每份文档的完整格式，再开始编写。**
 
-Key rules:
-- ARCH.md: follow the section structure from the template — do not invent new top-level sections
-- feat.md: fine-grained, one row per feature, grouped by domain; backend and frontend in separate sections
-- test_case.md (full scan): for each row in feat.md, generate one happy-path TC and one key error-path TC. Mark all with `bootstrapped` in Notes. Do not guess edge cases — stay close to what the route/component signature implies.
-- test_case.md (incremental): only sync with feat.md changes per Step 2 — do not add new TCs
-- CLAUDE.md: thin index only — never duplicate content from ARCH.md or feat.md into CLAUDE.md
+关键规则：
+- ARCH.md：遵循模板中的章节结构——不要发明新的顶级章节
+- feat.md：细粒度，每个功能一行，按领域分组；后端和前端分开章节
+- test_case.md（全量扫描）：对 feat.md 中的每一行，生成一个正常路径 TC 和一个关键错误路径 TC，全部在 Notes 列标注 `bootstrapped`。不猜测边界情况——紧贴路由/组件签名的含义。
+- test_case.md（增量）：仅按 Step 2 的规则与 feat.md 变更同步——不新增 TC
+- CLAUDE.md：只做精简索引——不要将 ARCH.md 或 feat.md 的内容复制进 CLAUDE.md
 
-### Step 5 — Update frontmatter
+### Step 5 — 更新 frontmatter
 
-After writing, record the current git state in each file's frontmatter:
+写入后，在每份文件的 frontmatter 中记录当前 git 状态：
 
 ```bash
-git rev-parse HEAD          # for git_sha
-git status --short          # for git_dirty + dirty_files
-date -u +"%Y-%m-%dT%H:%M:%SZ"   # for generated_at
+git rev-parse HEAD          # 用于 git_sha
+git status --short          # 用于 git_dirty + dirty_files
+date -u +"%Y-%m-%dT%H:%M:%SZ"   # 用于 generated_at
 ```
 
-### Step 6 — CLAUDE.md freshness summary
+### Step 6 — CLAUDE.md 新鲜度摘要
 
-CLAUDE.md's header block must reflect the current status of all docs:
+CLAUDE.md 的头部块必须反映所有文档的当前状态：
 
 ```markdown
-> ARCH.md       — synced at a1b2c3d (2026-04-24) ✅
-> feat.md       — synced at a1b2c3d (2026-04-24) ✅
-> test_case.md  — 24 TCs (18 bootstrapped, 6 verified) · last updated 2026-04-24
+> ARCH.md       — 同步于 a1b2c3d（2026-04-24）✅
+> feat.md       — 同步于 a1b2c3d（2026-04-24）✅
+> test_case.md  — 24 个 TC（18 bootstrapped，6 已验证）· 最后更新 2026-04-24
 ```
 
-For test_case.md: count total TC rows, count how many still have `bootstrapped` in Notes vs those without. This gives the user a quick signal of how much of the test coverage has been validated by a real tester.
+对 test_case.md：统计 TC 总行数，计算 Notes 列中仍有 `bootstrapped` 的行数与没有的行数。这给用户一个快速信号，了解有多少测试覆盖已被真实 tester 验证。
 
-If `git_dirty: true`:
+如果 `git_dirty: true`：
 ```markdown
-> ARCH.md — synced at a1b2c3d (2026-04-24) 🔶 dirty (3 uncommitted files at generation time)
+> ARCH.md — 同步于 a1b2c3d（2026-04-24）🔶 有未提交变更（生成时有 3 个未提交文件）
 ```
 
-### Step 7 — Report
+### Step 7 — 汇报
 
-Tell the user:
-- What was created or updated
-- How many sections changed (incremental) or total sections written (full)
-- Whether `git_dirty` was recorded
-- Next step: "Docs are ready. You can now run the feature workflow, or review the docs at ARCH.md / feat.md."
+向用户说明：
+- 创建或更新了哪些文档
+- 变更了多少章节（增量）或总共写了多少章节（全量）
+- 是否记录了 `git_dirty`
+- 下一步："文档已就绪。你现在可以运行功能工作流，或在 ARCH.md / feat.md 查看文档。"
 
-## Manual Invocation
+## 手动调用
 
-Users can trigger this skill directly at any time:
+用户可以随时直接触发本技能：
 
-| Phrase | Behavior |
+| 触发语 | 行为 |
 |---|---|
-| "update docs" / "sync docs" | Freshness check → incremental if stale, no-op if current |
-| "regenerate docs" / "full update" | Force full regeneration regardless of freshness |
-| "check if docs are up to date" | Freshness check only — report status, do not write |
-| "initialize project docs" | Full scan (treat as first run) |
+| "更新文档" / "同步文档" | 新鲜度检查 → 过期则增量，最新则无操作 |
+| "重新生成文档" / "全量更新" | 无论新鲜度如何，强制全量重新生成 |
+| "检查文档是否最新" | 仅做新鲜度检查——报告状态，不写入 |
+| "初始化项目文档" | 全量扫描（视为首次运行）|
 
-## References
+## 参考文件
 
-- `references/explore-guide.md` — full codebase exploration sequence for new projects
-- `references/doc-templates.md` — ARCH.md, feat.md, CLAUDE.md full templates with section descriptions
+- `references/explore-guide.md` — 新项目的完整代码库探索顺序
+- `references/doc-templates.md` — ARCH.md、feat.md、CLAUDE.md 的完整模板及章节说明

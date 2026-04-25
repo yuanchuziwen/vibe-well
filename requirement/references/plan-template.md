@@ -131,21 +131,24 @@ Deferred: P4 (reason: [lower priority / can be added later without rework])
 
 ## Execution Notes
 
-**Per-phase lifecycle** (applies to every phase):
+**Per-phase lifecycle** (applies to every phase in Mode C):
 
 ```
-dev-member reads ARCH.md + feat.md + discuss-result.md + this plan
-  → writes P<n>.md (file-level implementation plan)
-  → reviewer-member reviews P<n>.md (independent context)
-  → user approves
-  → dev-member implements
-  → reviewer-member reviews code (different context from plan review)
-  → self-test (curl + browser / Playwright)
-  → ARCH.md updated if triggers met
-  → phase marked complete
+主 Agent 创建团队 + spawn dev / reviewer / tester
+  → dev 写 P<n>.md（本模板 Phase Details 部分）
+  → reviewer 审查 P<n>.md（多轮直至 PASS）
+  → Pn.md 批准后两条轨道并行：
+      - dev：写代码 + 单元测试 → reviewer 审查代码
+      - tester：写测试用例 → reviewer 审查测试用例
+  → 两条轨道都 PASS
+  → tester 执行测试 → dev 修复失败 → tester 重跑
+  → dev 更新 ARCH.md + feat.md + test_case.md + git commit
+  → dev 向主 Agent 发交付报告 → 主 Agent shutdown 团队
 ```
 
-**Parallel execution**: when phases can run in parallel, spawn separate dev-member subagents per phase. Each follows the full lifecycle independently.
+Mode A（S 级小阶段）：由主 Agent 直接按上述流程串行执行，不 spawn 团队。
+
+**Parallel execution**: 多个无依赖的阶段可同时 spawn 各自的团队，每个团队独立运行。注意团队名需要区分（如 `p2-xxx` 和 `p4-yyy`）。
 
 ---
 
