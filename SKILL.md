@@ -41,15 +41,17 @@ Stage 3 · Execution     → feature-exec per phase (fire-and-forget for Mode C)
 ls CLAUDE.md ARCH.md feat.md 2>/dev/null
 ```
 
-- **Missing**: invoke `project-onboard` (full scan)
-- **Stale** (git SHA diff > 0): invoke `project-onboard` (incremental update)
+- **Missing**: read `project-onboard/SKILL.md` and follow its workflow (full scan)
+- **Stale** (git SHA diff > 0): read `project-onboard/SKILL.md` and follow its workflow (incremental update)
 - **Current**: proceed
 
 ---
 
 ## Stage 1 · Requirement
 
-Invoke the `requirement` sub-skill. It produces three documents through structured dialogue with the user:
+**Read `requirement/SKILL.md` now and follow its workflow exactly.**
+
+It will guide you through structured dialogue with the user and produce three documents:
 
 - `discuss.md` — structured decision points (Dn) with options, recommendations, cold-water notes
 - `discuss-result.md` — all Dn resolved: technical decisions knowledge base with code skeletons, schemas, tech debt
@@ -76,7 +78,7 @@ For each phase in `plan.md`, select execution mode:
 
 ## Stage 3 · Execution
 
-For each phase, invoke `feature-exec`. It owns the complete cycle internally:
+For each phase, **read `feature-exec/SKILL.md` now and follow its workflow exactly.** It owns the complete cycle internally:
 
 ```
 reviewer ↔ dev: review Pn.md (multi-round until PASS)

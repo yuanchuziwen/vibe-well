@@ -71,7 +71,7 @@ Accept any input:
 
 Generate `discuss.md` proactively — do not ask the user to write it.
 
-**Format**: see `references/discuss-template.md`
+**Format**: read `references/discuss-template.md` now for the full format.
 
 Key rules:
 - Each Dn covers exactly one decision that cannot be resolved without user input
@@ -91,7 +91,7 @@ After writing discuss.md, present it and ask the user to choose options for each
 
 Once all Dn are resolved, generate `discuss-result.md`.
 
-**Format**: see `references/discuss-result-template.md`
+**Format**: read `references/discuss-result-template.md` now for the full format.
 
 Key rules:
 - One section per Dn, labeled with the decision number and title
@@ -108,7 +108,7 @@ Key rules:
 
 Generate `plan.md` as a phased delivery plan.
 
-**Format**: see `references/plan-template.md`
+**Format**: read `references/plan-template.md` now for the full format.
 
 Key rules:
 - Phases (P1, P2…) should be at the "meaningful delivery unit" level — e.g., "auth layer", "document editor", "AI integration". Not at the file or API level.

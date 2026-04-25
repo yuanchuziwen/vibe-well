@@ -122,7 +122,7 @@ Before spawning, read these files so you can paste their contents:
 - `design/<date>/discuss-result.md`
 - `design/<date>/P<n>.md`
 
-Spawn three members simultaneously. Full kickoff prompt templates: `../references/subagent-prompts.md`
+**Read `../references/subagent-prompts.md` now to get the full kickoff prompt for each member before spawning.** Then spawn three members simultaneously using those prompts.
 
 After kickoff, main agent does not participate until receiving the delivery report or an escalation.
 

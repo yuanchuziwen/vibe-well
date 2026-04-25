@@ -109,7 +109,7 @@ Do not add new TCs during project-onboard — that is tester's job during featur
 
 ### Step 3 — Explore (full scan only)
 
-For full scan, explore the project systematically. Read `references/explore-guide.md` for the full exploration sequence. Key targets:
+For full scan, **read `references/explore-guide.md` now and follow its exploration sequence.** Key targets summary:
 
 - Directory structure (top 2 levels)
 - `package.json` / `pnpm-workspace.yaml` — tech stack, scripts
@@ -129,7 +129,7 @@ Read only the files in the diff plus their direct callers/dependents. Identify w
 
 Generate in this order: ARCH.md → feat.md → test_case.md → CLAUDE.md (CLAUDE.md is last because it references the others).
 
-Full formats and templates: `references/doc-templates.md`
+**Read `references/doc-templates.md` now for the full format of each document before writing.**
 
 Key rules:
 - ARCH.md: follow the section structure from the template — do not invent new top-level sections
