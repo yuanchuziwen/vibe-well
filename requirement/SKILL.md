@@ -61,7 +61,14 @@ Accept any input:
 - Never ask for things you can derive from the codebase or ARCH.md
 - If you can propose a recommendation, do — don't make the user figure it out
 
-**When to invoke huashu-design**: if the request involves any visible UI change (new page, new component, modified layout), say so explicitly and offer to invoke `huashu-design` for a prototype before finalizing visual decisions. UI decisions made without a prototype often need to be revisited. This is optional — user can skip.
+**When the request involves UI changes** (new page, new component, modified layout):
+
+```bash
+ls ~/.agents/skills/huashu-design/ 2>/dev/null
+```
+
+- **huashu-design is installed**: offer to invoke it for a prototype before finalizing visual decisions. UI decisions made without a prototype often need to be revisited. This is optional — user can skip.
+- **huashu-design is not installed**: describe the UI direction in text within discuss.md (layout, visual style, key interactions). Note in the document: "huashu-design not available — UI direction described in text only."
 
 🛑 **Gate 1**: Before writing discuss.md, briefly state what you understood and what the major open questions are. Wait for the user to confirm your understanding or correct it.
 
