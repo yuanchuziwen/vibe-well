@@ -116,13 +116,13 @@ The two tracks (dev and tester) run in parallel after Pn.md is approved. Reviewe
 
 ### Kickoff
 
-Before spawning, read these files so you can paste their contents:
-- `ARCH.md`
-- `feat.md`
-- `design/<date>/discuss-result.md`
-- `design/<date>/P<n>.md`
+**Read `../references/subagent-prompts.md` now to get the full kickoff prompt for each member before spawning.**
 
-**Read `../references/subagent-prompts.md` now to get the full kickoff prompt for each member before spawning.** Then spawn three members simultaneously using those prompts.
+Before spawning, determine two values to substitute into each prompt:
+- `<project_root>` — run `pwd` or `git rev-parse --show-toplevel` to get the absolute project root path
+- `<design_dir>` — the relative path to this feature's design directory (e.g. `design/20260426`)
+
+Then spawn three members simultaneously. Members read all files themselves — do not paste file contents into prompts.
 
 After kickoff, main agent does not participate until receiving the delivery report or an escalation.
 
