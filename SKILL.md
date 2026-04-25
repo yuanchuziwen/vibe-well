@@ -1,6 +1,6 @@
 ---
 name: vibe-well
-version: 1.0.0
+version: 2.0.0
 description: 当用户想要"开发新功能"、"开始一个功能"、"端到端实现功能"、"启动开发流程"，或者说"我们来构建 X"、"我想给产品加 X"、"帮我从头实现 X"时使用此技能。引导完整的功能开发生命周期：需求讨论 → 分阶段执行 → 交付有文档的代码。编排子技能：project-onboard、requirement、feature-exec。
 ---
 
