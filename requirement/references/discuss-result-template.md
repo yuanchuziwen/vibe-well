@@ -9,7 +9,7 @@ Full format for the technical decisions knowledge base generated at Stage 3.
 generated_at: YYYY-MM-DDTHH:MM:SSZ
 git_sha: <sha>
 feature: <one-line feature description>
-discuss_ref: design/<date>/discuss.md
+discuss_ref: design/<YYYYMMDD>-<feature-slug>/discuss.md
 ---
 
 # Technical Decisions: <Feature Name>

@@ -1,6 +1,6 @@
 ---
 name: vibe-well
-version: 2.1.0
+version: 2.2.0
 description: 当用户想要"开发新功能"、"开始一个功能"、"端到端实现功能"、"启动开发流程"，或者说"我们来构建 X"、"我想给产品加 X"、"帮我从头实现 X"时使用此技能。引导完整的功能开发生命周期：需求讨论 → 分阶段执行 → 交付有文档的代码。编排子技能：project-onboard、requirement、feature-exec。
 ---
 
@@ -45,9 +45,9 @@ Stage 5 · 收尾          → 所有阶段完成后：全量测试 + 合并/PR/
 ls CLAUDE.md ARCH.md feat.md 2>/dev/null
 ```
 
-- **缺失**：立即读取 `project-onboard/SKILL.md` 并按其工作流执行（全量扫描）
-- **过期**（git SHA diff > 0）：读取 `project-onboard/SKILL.md` 并按其工作流执行（增量更新）
-- **最新**：继续
+- **文件缺失**：立即读取 `project-onboard/SKILL.md` 并按其工作流执行（全量扫描）
+- **文件存在**：读取 `project-onboard/SKILL.md`，由它执行新鲜度判断（git SHA 对比）并决定是否需要增量更新
+- 不要在顶层自行做 SHA 对比——project-onboard 内部有完整的新鲜度检测逻辑
 
 ---
 
@@ -61,7 +61,7 @@ ls CLAUDE.md ARCH.md feat.md 2>/dev/null
 - `discuss-result.md` — 所有 Dn 已决策：技术决策知识库，含代码骨架、数据模式、技术债
 - `plan.md` — 分阶段 P1~Pn 交付计划，含范围边界、依赖关系、验收标准
 
-输出目录：项目根目录下的 `design/<YYYYMMDD>/`（或用户指定路径）。记录此目录的绝对路径，后续 feature-exec 启动成员时需要用到。
+输出目录：项目根目录下的 `design/<YYYYMMDD>-<feature-slug>/`（如 `design/20260505-user-auth/`）。如用户未指定，由本技能根据需求描述自动生成 slug。记录此目录的绝对路径，后续 feature-exec 启动成员时需要用到。
 
 🛑 **Gate 1**：用户批准 `plan.md`（阶段边界、顺序、范围）。这是用户做产品和技术方向决策的最后时机，此后执行基本自主进行。
 
@@ -90,7 +90,7 @@ ls CLAUDE.md ARCH.md feat.md 2>/dev/null
 - 功能级：`feat/<feature-slug>`
 - 阶段级：`feat/<feature-slug>/p<n>-<phase-slug>`
 
-**关于设计文件路径**：`design/<date>/` 目录里的 discuss-result.md、plan.md、Pn.md 始终位于**原始仓库**，不在 worktree 内。feature-exec 启动成员时要单独传 `<design_root>`（设计目录的绝对路径），不能用 `<project_root>/<design_dir>` 拼接，否则在 worktree 场景下会找不到文件。
+**关于设计文件路径**：`design/<YYYYMMDD>-<feature-slug>/` 目录里的 discuss-result.md、plan.md、Pn.md 始终位于**原始仓库**，不在 worktree 内。feature-exec 启动成员时要单独传 `<design_root>`（设计目录的绝对路径），不能用 `<project_root>/<design_dir>` 拼接，否则在 worktree 场景下会找不到文件。
 
 🛑 **Gate 2**：在创建任何 worktree 之前，先与用户确认选择和分支名。
 

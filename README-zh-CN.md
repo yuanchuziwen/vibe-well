@@ -46,6 +46,8 @@ Stage 3 · 模式选择      → 环境检测 + 每个 phase 选 A 或 C
                            🛑 用户确认每个 phase 的模式
 Stage 4 · 执行          → 每个 phase 跑 feature-exec
                            🛑 每个 phase 收到交付报告 + 测试证据后用户签收
+Stage 5 · 收尾          → 全量测试 + 合并/PR/保留/丢弃
+                           🛑 用户选择收尾方式
 ```
 
 ---
@@ -85,7 +87,7 @@ Stage 4 · 执行          → 每个 phase 跑 feature-exec
 
 **触发时机**：用户提出任何功能需求、bug 修复、重构想法
 
-**产出三份文档**（存放在 `design/<YYYYMMDD>/`）：
+**产出三份文档**（存放在 `design/<YYYYMMDD>-<feature-slug>/`，如 `design/20260505-user-auth/`）：
 
 | 文档 | 内容 |
 |---|---|
@@ -100,6 +102,8 @@ Stage 4 · 执行          → 每个 phase 跑 feature-exec
 - plan.md 的粒度是"有意义的交付单元"（如"登录模块"），不是 API 级别
 - P1.md、P2.md 等任务级文档由 dev-member 在执行时自己写，不是需求阶段的产出
 
+**自查门**：discuss-result.md 和 plan.md 写完后各有一轮 Agent 自查（占位符、覆盖检查、验收项可验证性），自查通过才展示给用户。
+
 **UI 设计辅助**（当需求涉及 UI 变更时）：
 - 如有 `huashu-design` skill：提议产出 3 个差异化高保真方向供用户选
 - 如有 `playground` skill：提议生成交互式 HTML 探索器
@@ -108,8 +112,8 @@ Stage 4 · 执行          → 每个 phase 跑 feature-exec
 **四个 Gate**：
 1. Agent 复述理解 + 主要开放问题 → 用户确认
 2. discuss.md 写完 → 用户逐一选 Dn 选项
-3. discuss-result.md 写完 → 用户 review 正确性
-4. plan.md 写完 → 用户 review 阶段划分和顺序
+3. discuss-result.md 写完（自查通过）→ 用户 review 正确性
+4. plan.md 写完（自查通过）→ 用户 review 阶段划分和顺序
 
 ---
 
@@ -126,7 +130,7 @@ Stage 4 · 执行          → 每个 phase 跑 feature-exec
 
 适用：S 级 phase（单模块、无新 schema、< 1 天），或 TeamCreate 不可用的环境
 
-步骤：写 Pn.md（如不存在）→ 读文档 → 实现 → 写单测 → 自我 review → 跑验收测试 → 更新 ARCH.md + feat.md + test_case.md → commit
+步骤：写 Pn.md（如不存在）→ 读文档 → **TDD Red**（先写失败单测）→ **TDD Green**（最小实现，测试全绿）→ 自我 review（少/过度实现检查）→ 跑验收测试 → 更新 ARCH.md + feat.md + test_case.md → commit
 
 ### Mode C — Agent 团队（需 TeamCreate 可用）
 
@@ -143,12 +147,16 @@ dev 写 Pn.md → reviewer 审 Pn.md（多轮，直到 PASS）
     │
     ▼ Pn.md 通过 —— 两条轨道同时开始
     │
-    ├── Dev 轨道：写代码 + 单测 → reviewer 审代码（多轮）
-    └── Tester 轨道：写 test cases → reviewer 审 test cases（多轮）
+    ├── Dev 轨道：
+    │     Phase 3a：写失败单测 → reviewer 审测试设计
+    │     Phase 3b：写最小实现 → reviewer 审代码质量
+    └── Tester 轨道：写 test cases → reviewer 审 test cases
     │
     ▼ 两条轨道都 PASS
     │
-tester 执行 test cases → 失败 → dev 修复 → tester 回归
+tester 执行 test cases（每个 TC 完成后发进度心跳给 team-lead）
+失败 → dev 先找根因再修复 → tester 回归
+（3 次修复仍失败 → dev 向 team-lead 上报，用户决策）
     │
     ▼ 全部通过
     │
@@ -158,9 +166,11 @@ dev 更新 ARCH.md + feat.md + test_case.md + git commit → 交付报告 → �
 **关键规则**：
 - Pn.md 由 dev 写，reviewer 审——不要让同一个成员既写又审
 - Dev 不 review 自己的代码，永远是 reviewer 来
+- **TDD 顺序不可跳过**：Phase 3a（失败单测经 reviewer 确认）→ Phase 3b（实现），不得先实现后补测试
+- **测试运行证据必须附上**：dev 请求 review 时必须粘贴测试命令输出
 - Reviewer context 在多轮 review 中复用——re-review 时只验证问题是否被修复，不用从头看
-- **单测是 dev 的交付门槛**：没有通过单测的代码不能送 code review
 - **两条轨道都 PASS 才能执行测试**：tester 不能提前执行
+- **调试先找根因**：修复失败前先复现、追根因；3 次修复失败向 team-lead 上报
 - Commit 是交付的一部分：phase 未 commit 不算交付
 
 **主 Agent 监控与介入**：

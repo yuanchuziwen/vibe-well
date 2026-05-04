@@ -16,7 +16,7 @@ description: 当用户想要"明确需求"、"讨论一个功能"、"写规格�
 | `discuss-result.md` | 技术决策知识库——所有 Dn 已决策，含决策理由、代码骨架、技术债 | 本技能 |
 | `plan.md` | 分阶段交付计划（P1~Pn），含依赖关系、范围边界、验收标准 | 本技能 |
 
-三份文档存放在与用户商定的目录——默认：项目根目录下的 `design/<YYYYMMDD>/`。
+三份文档存放在与用户商定的目录——默认：项目根目录下的 `design/<YYYYMMDD>-<feature-slug>/`（如 `design/20260505-user-auth/`）。slug 由本技能根据需求描述自动生成，用户可覆盖。
 
 **此处不产出**：P1.md、P2.md…… 任务级实现文档。这些由 dev 成员子 Agent 在执行阶段编写。
 
@@ -160,7 +160,7 @@ git rev-parse HEAD 2>/dev/null   # git_sha（非 git 仓库时为空）
 ```
 
 向用户汇报：
-- 三份文档已写入：`design/<date>/discuss.md`、`discuss-result.md`、`plan.md`
+- 三份文档已写入：`design/<YYYYMMDD>-<feature-slug>/discuss.md`、`discuss-result.md`、`plan.md`
 - 已决策：D1~Dn（列出标题）
 - 已规划：P1~Pn（列出阶段和规模估算）
 - 延迟到 huashu-design 的 UI 设计工作（如有）

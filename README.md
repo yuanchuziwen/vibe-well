@@ -31,17 +31,22 @@ Stage 3 · Mode Select   → env check → A (main agent) or C (agent team) per 
                            🛑 user confirms
 Stage 4 · Execution     → feature-exec per phase
                            🛑 user signs off delivery report
+Stage 5 · Wrap-up       → full test suite → merge / PR / keep / discard
+                           🛑 user chooses
 ```
 
 In **Mode C** (the default for M / L / XL phases when `TeamCreate` is available), three agents coordinate through `TeamCreate` + `SendMessage`:
 
 ```
-dev writes Pn.md → reviewer reviews
+dev writes Pn.md → reviewer reviews Pn.md
     ↓ approved — parallel tracks
-dev: code + unit tests → reviewer reviews
-tester: write test cases → reviewer reviews
-    ↓ both PASS
-tester executes → dev fixes → tester re-runs
+dev track:                              tester track:
+  Phase 3a: write failing unit tests      write functional test cases
+  → reviewer reviews test design          → reviewer reviews test cases
+  Phase 3b: write minimal implementation
+  → reviewer reviews code quality
+    ↓ both tracks PASS
+tester executes → dev fixes (root cause first) → tester re-runs
     ↓ all PASS
 dev updates ARCH.md + feat.md + test_case.md + commits → delivery report
 ```
@@ -63,8 +68,8 @@ The main agent monitors for anomalies (member unresponsive, abnormal termination
 # Global install (available across all projects)
 npx reskill install github:yuanchuziwen/vibe-well -g
 
-# Project-local install
-npx reskill install github:yuanchuziwen/vibe-well
+# Install to all supported agents
+npx reskill install github:yuanchuziwen/vibe-well --all
 ```
 
 ---
@@ -82,7 +87,7 @@ vibe-well maintains four living documents at your project root:
 
 All documents carry a git SHA in frontmatter. `project-onboard` detects staleness and updates incrementally by default.
 
-Per-feature design files live in `design/<YYYYMMDD>/`:
+Per-feature design files live in `design/<YYYYMMDD>-<feature-slug>/` (e.g. `design/20260505-user-auth/`):
 - `discuss.md`, `discuss-result.md`, `plan.md` — written by the `requirement` skill
 - `P1.md`, `P2.md`, … — written by the `dev` member during `feature-exec`
 

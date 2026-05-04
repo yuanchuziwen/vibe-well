@@ -8,7 +8,7 @@ spawn 时，在每个提示中替换以下变量：
 
 **必填（每个阶段不同）**
 - `<project_root>` — 成员读写代码和项目文档（ARCH.md、feat.md、test_case.md）的绝对路径
-- `<design_root>` — 本功能设计文件的绝对路径（如 `/Users/you/project/design/20260426`）。**始终在原始仓库内，不在 worktree 内。**
+- `<design_root>` — 本功能设计文件的绝对路径（如 `/Users/you/project/design/20260505-user-auth`）。**始终在原始仓库内，不在 worktree 内。**
 - `<phase_num>` — 阶段编号（如 `1`、`2`）
 - `<phase_name>` — 阶段名称（来自 plan.md）
 
@@ -62,12 +62,12 @@ spawn 时，在每个提示中替换以下变量：
 ### Phase 1 — 编写 Pn.md（如果不存在）
 1. 检查 `<design_root>/P<phase_num>.md` 是否存在
 2. 如果不存在，基于 plan.md 中 P<phase_num> 的描述 + discuss-result.md 的技术决策，编写 Pn.md
-   - 参考模板：`<project_root>/../requirement/references/plan-template.md` 的"Phase Details"部分
+   - 参考模板：`~/.agents/skills/vibe-well/requirement/references/plan-template.md` 的"Phase Details"部分（如找不到，也可参考 `<design_root>/../` 附近的 requirement 目录）
    - 必须包含：目标、范围（in/out）、变更文件列表、验收清单、风险说明
 3. 保存到 `<design_root>/P<phase_num>.md`
 4. 用 SendMessage 通知 `<reviewer_name>`："Pn.md 已写好在 `<design_root>/P<phase_num>.md`，请审查。"
 
-如果 Pn.md 已存在，跳过写入，直接通知 `<reviewer_name>` 审查（或等待 reviewer 主动联系——视情况而定）。
+如果 Pn.md 已存在，跳过写入，**立即用 SendMessage 通知 `<reviewer_name>`**："Pn.md 已存在于 `<design_root>/P<phase_num>.md`，请审查。"——不要等待，reviewer 始终等 dev 先发消息。
 
 ### Phase 2 — 响应方案审查
 1. 回应 `<reviewer_name>` 对 Pn.md 的疑问或修改要求
@@ -100,7 +100,7 @@ spawn 时，在每个提示中替换以下变量：
    - "代码实现完成，测试全绿——请审查代码质量。附通过输出：[粘贴输出]"
    - 列出所有变更文件
 5. 修复 `<reviewer_name>` 提出的所有阻塞问题，重新请求审查（每次重新审查前必须确认测试仍全绿）
-6. 收到 `<reviewer_name>` 发来"代码 PASS"消息后 → 等待 tester 轨道也完成（`<tester_name>` 会在测试执行阶段联系你）
+6. 收到 `<reviewer_name>` 发来"代码 PASS"消息后 → **进入等待状态，不要进入 Phase 5**。等待 `<tester_name>` 发来"所有测试用例已通过"的消息，届时直接进入 Phase 5。
 
 ### Phase 4 — 修复测试失败
 
@@ -274,8 +274,11 @@ Pn.md PASS 后，再发两条消息：
   ⚠️ <阻塞——tester 必须添加/修复> / 💡 <建议>
 
 ### 合并点
-当轨道 2a 和 2b 均 PASS 时，用 SendMessage 通知 `<tester_name>`："代码审查已通过，你现在可以执行测试用例了。"
-（`<dev_name>` 此时应该已经在等待 tester 的测试结果。）
+你需要追踪两条轨道的状态：**2a-ii（代码质量）是否 PASS？2b（测试用例）是否 PASS？**
+
+收到任意一条轨道 PASS 后，在心里记录。**只有当两条轨道都 PASS 时**，才用 SendMessage 通知 `<tester_name>`："两条轨道均已通过，你现在可以执行测试用例了。"
+
+注意：2a-i（TDD 单测设计）的 PASS 不算入合并点，合并点只看 2a-ii 和 2b。
 
 ## 规则
 - 你不写代码或测试用例——标记问题，让 `<dev_name>` / `<tester_name>` 来解决

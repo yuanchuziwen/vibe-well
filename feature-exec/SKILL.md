@@ -164,7 +164,7 @@ git rev-parse --show-toplevel
 # git worktree add <path> -b <branch>
 
 # <design_root> — 设计文件的绝对路径（始终在原始仓库，不在 worktree 内）
-# 例如 /Users/you/project/design/20260426
+# 例如 /Users/you/project/design/20260505-user-auth
 ```
 
 - `<project_root>` — 成员读写代码和项目文档（ARCH.md、feat.md、test_case.md）的绝对路径
@@ -329,11 +329,10 @@ test_case.md 更新：TC-<n> ~ TC-<m> 新增，TC-<x> 废弃 / 无变化
 
 主 Agent 收到交付后：
 1. 在 `plan.md` 中将该阶段标记为 `[x]`
-2. 用 SendMessage 向每位成员发送 `shutdown_request`（消息体：`{"type": "shutdown_request", "reason": "阶段已交付"}`）
-3. 收到每位成员的 `shutdown_approved` 后，调用 `TeamDelete`
-4. 向用户展示交付摘要 + 引入的技术债
+2. 用 SendMessage 向每位成员发送 `shutdown_request`（消息体：`{"type": "shutdown_request", "reason": "阶段已交付"}`），然后直接调用 `TeamDelete`
+3. 向用户展示交付摘要 + 引入的技术债
 
-Shutdown 由系统自动处理响应——成员不需要手动响应，收到 `shutdown_request` 后会自动发回 `shutdown_approved` 并终止。
+注意：shutdown_approved 由系统自动处理，主 Agent 无需等待回复再调用 TeamDelete。
 
 ---
 

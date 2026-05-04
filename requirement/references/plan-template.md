@@ -9,7 +9,7 @@ Full format for the phased delivery plan generated at Stage 4.
 generated_at: YYYY-MM-DDTHH:MM:SSZ
 git_sha: <sha>
 feature: <one-line feature description>
-discuss_result_ref: design/<date>/discuss-result.md
+discuss_result_ref: design/<YYYYMMDD>-<feature-slug>/discuss-result.md
 ---
 
 # Delivery Plan: <Feature Name>
