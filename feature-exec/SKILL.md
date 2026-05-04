@@ -87,14 +87,18 @@ ls -dt design/*/ 2>/dev/null | head -1 | xargs -I{} ls {}discuss-result.md {}pla
 
 1. 读取 ARCH.md（§2、§4、§5、§7、§8）、feat.md、discuss-result.md、Pn.md
 2. 读取所有待修改文件，包括调用方和依赖方
-3. 严格按 Pn.md 规定实现——不扩大范围
-4. 编写单元测试；所有测试通过后才能继续
-5. 自审：代码与 Pn.md 一致、无不变量被破坏、无死代码、命名符合 §8
+3. **TDD Red**：先为 Pn.md §Acceptance checklist 每项编写失败单元测试，运行确认全部失败（粘贴失败输出）
+4. **TDD Green**：写最小实现让所有测试通过，运行确认全绿（粘贴通过输出）
+5. 自审：
+   - 代码与 Pn.md 一致、无不变量被破坏、无死代码、命名符合 §8
+   - 少实现检查：Pn.md §Acceptance checklist 每项都有对应实现和测试
+   - 过度实现检查：无 Scope — out 以外的改动
 6. 针对 Pn.md 验收清单运行浏览器 / curl 测试——粘贴证明
-7. 更新 feat.md、ARCH.md（仅受影响的章节）、test_case.md（追加该阶段的 TC）
-8. Git commit：代码 + 测试 + feat.md + ARCH.md + test_case.md 一次性提交
+7. **调试铁律**（步骤 4 或 6 有失败时）：先找根因再修复，每次只改一个变量；3 次修复仍失败则停下来质疑设计，向用户上报
+8. 更新 feat.md、ARCH.md（仅受影响的章节）、test_case.md（追加该阶段的 TC）
+9. Git commit：代码 + 测试 + feat.md + ARCH.md + test_case.md 一次性提交
 
-交付物：commit SHA + 测试证明。
+交付物：commit SHA + 测试证明（含测试命令输出）。
 
 ---
 
@@ -111,23 +115,28 @@ reviewer → dev：审查 Pn.md（多轮直至 PASS）
     │
     ▼ Pn.md 批准
     │
-    ├─── Dev 轨道 ──────────────────────────────────────┐
-    │    dev 编写代码 + 单元测试                         │
-    │    dev → reviewer：代码审查请求                    │
-    │    reviewer ↔ dev：审查（多轮直至 PASS）           │
-    │                                                   │
-    └─── Tester 轨道 ────────────────────────────────────┤
-         reviewer → tester：发送 Pn.md 路径，通知开始    │
-         tester 编写测试用例                            │
-         tester → reviewer：测试用例审查请求            │
-         reviewer ↔ tester：审查（多轮直至 PASS）       │
-                                                        │
-    ◄──────────── 两条轨道均 PASS ───────────────────────┘
+    ├─── Dev 轨道 ──────────────────────────────────────────────┐
+    │    Phase 3a：dev 写失败单测（TDD Red）+ 运行确认失败       │
+    │    dev → reviewer：TDD 单测审查请求（附失败输出）          │
+    │    reviewer ↔ dev：审查测试设计（多轮直至 PASS）           │
+    │                                                           │
+    │    Phase 3b：dev 写最小实现（TDD Green）+ 运行确认全绿     │
+    │    dev → reviewer：代码质量审查请求（附通过输出）          │
+    │    reviewer ↔ dev：审查实现质量（多轮直至 PASS）           │
+    │                                                           │
+    └─── Tester 轨道 ────────────────────────────────────────────┤
+         reviewer → tester：发送 Pn.md 路径，通知开始           │
+         tester 编写功能测试用例                                │
+         tester → reviewer：测试用例审查请求                    │
+         reviewer ↔ tester：审查（多轮直至 PASS）               │
+                                                                │
+    ◄──────────── 两条轨道均 PASS ─────────────────────────────┘
     │
 reviewer → tester：通知可以执行了
-tester 执行测试用例
+tester 执行测试用例（每个 TC 完成后向 team-lead 发进度心跳）
     │
-失败 → tester → dev：报告失败 → dev 修复 → tester 重跑
+失败 → tester → dev：报告失败 → dev 找根因修复 → tester 重跑
+（3 次修复仍失败 → dev → team-lead 上报，等待用户决策）
     │
 全部 PASS
     │
@@ -333,10 +342,13 @@ Shutdown 由系统自动处理响应——成员不需要手动响应，收到 `
 - **Dev 不审查自己的工作** — reviewer 始终是独立的成员
 - **Pn.md 由 dev 编写，reviewer 审查** — 不要让同一个人既写又审
 - **Reviewer 上下文跨轮次保持** — 修复后由同一个 reviewer 重新审查，不换人
-- **单元测试是 dev 的交付门槛** — 没有通过单元测试的代码不进入代码审查
+- **TDD 顺序不可跳过** — 先写失败单测（Phase 3a，经 reviewer 确认）再写实现（Phase 3b），不得先实现后补测试
+- **测试运行证据必须附上** — dev 每次请求 review 时必须附测试命令输出，不能只口头说"通过了"
+- **单元测试是进入代码质量审查的门槛** — Phase 3a TDD 单测未经 reviewer PASS，不得进入 Phase 3b
 - **两条轨道均 PASS 后才能执行测试** — tester 在收到 reviewer 的明确通知前不执行
 - **提交是交付的一部分** — 代码 + ARCH.md + feat.md + test_case.md 全部提交后阶段才算完成
 - **未经授权不得扩大范围** — Pn.md §范围——包含 以外的任何改动都需先获授权
+- **调试先找根因** — 修复失败前先复现、追根因；3 次修复失败向 team-lead 上报，不继续猜测
 - **成员间通信必须用 SendMessage** — 成员的文字输出对队友不可见
 - **主 Agent 的名字是 `team-lead`** — 成员上报时 `to="team-lead"`
 

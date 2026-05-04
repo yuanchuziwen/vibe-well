@@ -115,6 +115,11 @@ ls ~/.agents/skills/playground/ ~/.claude/plugins/marketplaces/claude-plugins-of
 - 技术债项目获得唯一 ID（TD-X），并汇总到末尾的 §技术债 章节
 - 本文档是所有子 Agent 的唯一权威来源——必须自包含。dev 成员读取本文档 + ARCH.md 后应拥有所需的一切。
 
+**discuss-result.md 写完后，执行自查（就地修复）**：
+1. **代码骨架完整性**：每个 Dn 的代码骨架是否足够具体？类型签名、表 schema、关键函数签名是否齐全？能让 dev 直接开始实现而不需要再做设计决策？
+2. **矛盾检查**：Dn 之间有无冲突（如 D2 的 schema 与 D3 的 API 签名不兼容）？
+3. **技术债 ID**：所有技术债是否都有唯一 ID（TD-X）并汇总到末尾？
+
 🛑 **Gate 3**：展示 discuss-result.md，用户审查正确性和完整性。小的澄清可以就地处理；重大分歧需要回到 Gate 2。
 
 ---
@@ -132,6 +137,14 @@ ls ~/.agents/skills/playground/ ~/.claude/plugins/marketplaces/claude-plugins-of
 - 包含依赖图——哪些阶段可以并行，哪些必须串行
 - **不要写实现细节**——那是 dev 成员的工作。plan.md 只说明 what，不说明 how。
 - 明确最小可行路径：哪些阶段构成最小可发布切片？
+
+**plan.md 写完后，执行自查（就地修复，不需要展示给用户）**：
+1. **占位符扫描**：有无 TBD、TODO、"待定"、空白验收项？全部填实。
+2. **覆盖检查**：discuss-result.md 里的每个 Dn 决策，都能在某个阶段的 Scope — in 里找到对应项吗？列出未覆盖的。
+3. **验收清单可验证性**：每条验收项是否能在 2 分钟内用 curl / 浏览器 / SQL 验证？不能的改掉。
+4. **一致性**：各阶段的依赖图、并行关系、规模估算是否自洽？
+
+自查发现问题就地修复，无需告知用户。自查通过后再展示给用户。
 
 🛑 **Gate 4**：展示 plan.md，用户审查阶段边界和顺序，如需要则调整。
 

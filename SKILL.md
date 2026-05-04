@@ -1,6 +1,6 @@
 ---
 name: vibe-well
-version: 2.0.0
+version: 2.1.0
 description: 当用户想要"开发新功能"、"开始一个功能"、"端到端实现功能"、"启动开发流程"，或者说"我们来构建 X"、"我想给产品加 X"、"帮我从头实现 X"时使用此技能。引导完整的功能开发生命周期：需求讨论 → 分阶段执行 → 交付有文档的代码。编排子技能：project-onboard、requirement、feature-exec。
 ---
 
@@ -33,6 +33,8 @@ Stage 3 · 模式选择      → 环境检测 → 每个阶段选择模式 A 或
                            🛑 Gate：用户确认每个阶段的模式
 Stage 4 · 执行          → 每个阶段运行 feature-exec
                            🛑 Gate：每个阶段的交付报告 + 测试证明
+Stage 5 · 收尾          → 所有阶段完成后：全量测试 + 合并/PR/保留/丢弃
+                           🛑 Gate：用户选择收尾方式
 ```
 
 ---
@@ -164,6 +166,50 @@ dev 更新 ARCH.md + feat.md + test_case.md + git commit → 交付报告
 - 提交是交付的一部分——ARCH.md + feat.md + test_case.md + 代码全部提交后阶段才算完成
 
 完整启动和成员提示模板：`feature-exec/SKILL.md` + `references/subagent-prompts.md`
+
+---
+
+## Stage 5 · 收尾
+
+**所有 plan.md 阶段均已签收后执行。**
+
+**Step 1 — 全量测试验证**
+
+```bash
+# 运行项目的完整测试套件（根据技术栈调整命令）
+npm test / pnpm test / pytest / go test ./... / cargo test
+```
+
+若有失败：列出失败项，告知用户"全量测试未通过，需在合并前修复"，不要继续。
+
+若全绿：继续 Step 2。
+
+**Step 2 — 询问用户收尾方式**
+
+> "所有阶段已交付，全量测试通过。接下来怎么处理这份工作？
+>
+> 1. **本地合并**到主分支（`main` / `master`）
+> 2. **推送并创建 PR**
+> 3. **保留分支**，稍后自行处理
+> 4. **丢弃**本次工作
+>
+> 请选择？"
+
+**Step 3 — 执行选择**
+
+| 选项 | 操作 |
+|---|---|
+| 1. 本地合并 | `git checkout <base>` → `git pull` → `git merge <branch>` → 运行测试确认 → `git branch -d <branch>` → 清理 worktree |
+| 2. 创建 PR | `git push -u origin <branch>` → `gh pr create` 含摘要和测试计划 → 保留 worktree 直到 PR 合并 |
+| 3. 保留分支 | 报告分支名和 worktree 路径，不做任何操作 |
+| 4. 丢弃 | **先请用户输入 `discard` 确认**，再 `git checkout <base>` → `git branch -D <branch>` → 清理 worktree |
+
+**Worktree 清理**（选项 1 和 4 执行，选项 2 和 3 保留）：
+```bash
+git worktree remove <worktree-path>
+```
+
+不使用 worktree 时跳过清理步骤。
 
 ---
 
