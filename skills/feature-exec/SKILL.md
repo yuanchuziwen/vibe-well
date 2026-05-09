@@ -56,7 +56,7 @@ ls "<design_root>/mini-plan.md" 2>/dev/null
 | 缺失内容 | 处理方式 |
 |---|---|
 | `ARCH.md` 或 `feat.md` | 调用 `project-onboard`（全量扫描），然后继续 |
-| `mini-plan.md` | 由调用方（主 SKILL Stage 0.5）按 `../references/xs-mini-plan-template.md` 生成，本技能不自动创建 |
+| `mini-plan.md` | 由调用方（主 SKILL Stage 0.5）按 `../vibe-well/references/xs-mini-plan-template.md` 生成，本技能不自动创建 |
 
 跳过 `discuss-result.md` / `plan.md` / `Pn.md` 检查——XS 模式不读这些。
 
@@ -206,7 +206,7 @@ dev → 主 Agent（team-lead）：交付报告
 
 ### 启动步骤
 
-**立即读取 `../references/subagent-prompts.md` 获取各成员的完整启动提示。**
+**立即读取 `../vibe-well/references/subagent-prompts.md` 获取各成员的完整启动提示。**
 
 **Step 1 — 确定路径变量**
 
@@ -411,5 +411,5 @@ test_case.md 更新：TC-<n> ~ TC-<m> 新增，TC-<x> 废弃 / 无变化
 
 ## 参考文件
 
-- `../references/subagent-prompts.md` — dev、reviewer、tester 的启动提示模板
+- `../vibe-well/references/subagent-prompts.md` — dev、reviewer、tester 的启动提示模板
 - `../requirement/references/plan-template.md` — plan.md 格式（Pn.md 也参考此模板的"Phase Details"部分）

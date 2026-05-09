@@ -69,8 +69,8 @@ Stage 5   · 收尾          → 所有阶段完成后：全量测试 + 合并/P
 ls CLAUDE.md ARCH.md feat.md 2>/dev/null
 ```
 
-- **文件缺失**：立即读取 `project-onboard/SKILL.md` 并按其工作流执行（全量扫描）
-- **文件存在**：读取 `project-onboard/SKILL.md`，由它执行新鲜度判断（git SHA 对比）并决定是否需要增量更新
+- **文件缺失**：立即读取 `../project-onboard/SKILL.md` 并按其工作流执行（全量扫描）
+- **文件存在**：读取 `../project-onboard/SKILL.md`，由它执行新鲜度判断（git SHA 对比）并决定是否需要增量更新
 - 不要在顶层自行做 SHA 对比——project-onboard 内部有完整的新鲜度检测逻辑
 
 ---
@@ -111,7 +111,7 @@ ls CLAUDE.md ARCH.md feat.md 2>/dev/null
 
 ## Stage 1 · 需求讨论
 
-**立即读取 `requirement/SKILL.md` 并严格按其工作流执行。**
+**立即读取 `../requirement/SKILL.md` 并严格按其工作流执行。**
 
 该技能会引导与用户进行结构化对话，产出三份文档：
 
@@ -182,7 +182,7 @@ ls CLAUDE.md ARCH.md feat.md 2>/dev/null
 
 ## Stage 4 · 执行
 
-每个阶段，**立即读取 `feature-exec/SKILL.md` 并严格按其工作流执行。** 该技能内部管理完整的执行周期：
+每个阶段，**立即读取 `../feature-exec/SKILL.md` 并严格按其工作流执行。** 该技能内部管理完整的执行周期：
 
 ```
 dev 编写 Pn.md → reviewer 审查 Pn.md（多轮直至 PASS）
@@ -203,7 +203,7 @@ dev 更新 ARCH.md + feat.md + test_case.md + git commit → 交付报告
 
 **并行执行**：`plan.md` 依赖图中无互相依赖的阶段可同时调用 `feature-exec`（注意：每个阶段需要独立的团队名）。
 
-**主 Agent 在 Mode C 期间的角色**：正常协作（方案审查、代码审查、测试用例评审、测试执行、失败修复）在成员之间通过 SendMessage 推进，主 Agent 不参与。但主 Agent 需要**监控异常**（成员上报、长时间无响应、异常终止、循环/死锁、上下文丢失）并在必要时介入。介入的具体规则见 `feature-exec/SKILL.md` 中的"主 Agent 监控与介入"章节。
+**主 Agent 在 Mode C 期间的角色**：正常协作（方案审查、代码审查、测试用例评审、测试执行、失败修复）在成员之间通过 SendMessage 推进，主 Agent 不参与。但主 Agent 需要**监控异常**（成员上报、长时间无响应、异常终止、循环/死锁、上下文丢失）并在必要时介入。介入的具体规则见 `../feature-exec/SKILL.md` 中的"主 Agent 监控与介入"章节。
 
 每份交付报告后，主 Agent：
 1. 更新 `plan.md` 状态（将阶段标记为 `[x]`）
@@ -228,7 +228,7 @@ dev 更新 ARCH.md + feat.md + test_case.md + git commit → 交付报告
 - 未经主 Agent 授权不得扩大范围
 - 提交是交付的一部分——ARCH.md + feat.md + test_case.md + 代码全部提交后阶段才算完成
 
-完整启动和成员提示模板：`feature-exec/SKILL.md` + `references/subagent-prompts.md`
+完整启动和成员提示模板：`../feature-exec/SKILL.md` + `references/subagent-prompts.md`
 
 ---
 
@@ -304,9 +304,9 @@ git worktree remove <worktree-path>
 
 ## 参考文件
 
-- `project-onboard/SKILL.md` — 代码库探索和文档生成
-- `requirement/SKILL.md` — 需求讨论和文档产出
-- `feature-exec/SKILL.md` — 带 Agent 团队的按阶段执行
+- `../project-onboard/SKILL.md` — 代码库探索和文档生成
+- `../requirement/SKILL.md` — 需求讨论和文档产出
+- `../feature-exec/SKILL.md` — 带 Agent 团队的按阶段执行
 - `references/subagent-prompts.md` — 成员提示模板（dev、reviewer、tester）
 - `references/xs-mini-plan-template.md` — XS 快速通道的 mini-plan.md 模板
 - `references/config-schema.md` — `~/.vibe-well/config.yaml` 用户偏好 schema

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "vibe-well",
+  "version": "2.3.0",
+  "description": "vibe-well marketplace — single-plugin source for vibe-well skill suite",
+  "owner": {
+    "name": "yuanchuziwen"
+  },
+  "plugins": [
+    {
+      "name": "vibe-well",
+      "description": "端到端功能开发流水线：需求讨论 → 分阶段执行 → 交付有文档的代码",
+      "version": "2.3.0",
+      "source": "./",
+      "author": {
+        "name": "yuanchuziwen"
+      },
+      "category": "workflow"
+    }
+  ]
+}

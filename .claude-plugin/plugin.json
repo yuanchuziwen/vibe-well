@@ -1,0 +1,20 @@
+{
+  "name": "vibe-well",
+  "description": "端到端功能开发流水线：需求讨论 → 分阶段执行 → 交付有文档的代码。编排 project-onboard / requirement / feature-exec 三个子技能。",
+  "version": "2.3.0",
+  "author": {
+    "name": "yuanchuziwen"
+  },
+  "homepage": "https://github.com/yuanchuziwen/vibe-well",
+  "repository": "https://github.com/yuanchuziwen/vibe-well",
+  "license": "MIT",
+  "skills": "./skills/",
+  "keywords": [
+    "skills",
+    "feature-development",
+    "spec-driven",
+    "tdd",
+    "workflow",
+    "chinese"
+  ]
+}
