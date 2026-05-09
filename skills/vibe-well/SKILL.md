@@ -1,7 +1,7 @@
 ---
 name: vibe-well
-version: 2.2.0
-description: 当用户想要"开发新功能"、"开始一个功能"、"端到端实现功能"、"启动开发流程"，或者说"我们来构建 X"、"我想给产品加 X"、"帮我从头实现 X"时使用此技能。引导完整的功能开发生命周期：需求讨论 → 分阶段执行 → 交付有文档的代码。编排子技能：project-onboard、requirement、feature-exec。
+version: 2.5.0
+description: 当用户想要"开发新功能"、"开始一个功能"、"端到端实现功能"、"启动开发流程"，或者说"我们来构建 X"、"我想给产品加 X"、"帮我从头实现 X"时使用此技能。引导完整的功能开发生命周期：需求讨论 → 分阶段执行 → 交付有文档的代码。编排子技能：project-onboard、requirement、feature-exec、regression-test。
 ---
 
 # 功能工作流
@@ -17,7 +17,23 @@ description: 当用户想要"开发新功能"、"开始一个功能"、"端到�
 | `project-onboard` | 文档缺失或过期 | CLAUDE.md、ARCH.md、feat.md、test_case.md |
 | `requirement` | 任何新功能请求 | discuss.md、discuss-result.md、plan.md |
 | `feature-exec` | 按阶段执行。可单独调用——依赖缺失时自动触发 project-onboard / requirement。 | 交付代码、更新 ARCH.md + feat.md + test_case.md、git commit |
-| *(regression-test)* | 计划中——发布时全量回归 | 测试报告 |
+| `regression-test` | 用户主动跑回归 / Stage 5 全量测试通过后可选触发 / hook command | 回归报告（diff 历史） |
+
+## 按需阅读导航
+
+本文件按 Stage 顺序写。**Agent 启动时先通读全文一次**，之后按下表按需读取扩展材料：
+
+| 在做什么 | 应读 |
+|---|---|
+| 启动前判断是否恢复 / 偏好 | 本 SKILL § 启动前两节 + `references/config-schema.md` |
+| Stage 0.5 复杂度筛 → XS | `references/xs-mini-plan-template.md` |
+| Stage 1 需求讨论 | `../requirement/SKILL.md`（主 Agent 完全交出控制权） |
+| Stage 3 模式选择细节 | `references/mode-guide.md` |
+| Stage 4 执行（任意 Mode）| `../feature-exec/SKILL.md` |
+| Mode B 启动 subagent | `references/role-cards/{dev,reviewer,tester}.md` |
+| Mode C 启动团队 | `references/subagent-prompts.md` |
+| 阶段执行中断恢复 | `../feature-exec/SKILL.md` § 恢复协议 |
+| Stage 5 收尾时跑回归 | `../regression-test/SKILL.md` |
 
 ---
 
@@ -251,28 +267,12 @@ dev 更新 ARCH.md + feat.md + test_case.md + git commit → 交付报告
 
 ## 执行模式说明
 
-### Mode A — 主 Agent 直接执行
-主 Agent 读取所有上下文、实现、自审、测试、更新文档、提交。用于 S/XS 级阶段，或者 Mode B/C 都不可用的环境。
+详见 `references/mode-guide.md`。简短摘要：
+- **Mode A** — 主 Agent 一身担三角，用于 S/XS
+- **Mode B** — 主 Agent + 一次性 Task subagent 三角色，用于 M（不依赖 TeamCreate，Cursor/Codex 友好）
+- **Mode C** — TeamCreate Agent 团队，用于 L/XL
 
-### Mode B — 单 Agent 三角色（B-orchestrate）
-主 Agent 充当 orchestrator/team-lead，每轮用 `Task` 工具 spawn 一次性 subagent 扮演 dev / reviewer / tester。subagent 上下文隔离实现"角色独立性"，跨轮上下文通过 `<design_root>/.reviews/` 历史文档保持。无需 TeamCreate，Cursor / Codex / 标准 Claude 都能跑。用于 M 级阶段，L/XL 退而求其次。
-
-关键规则：
-- 每次 spawn 一个 subagent 只做一件事（写 Pn / 审 Pn / 写 TC / 跑 TC / 修 fail）
-- 每次 reviewer spawn 必须传入"前 N 轮反馈历史"，避免反复
-- 角色卡在 `references/role-cards/{dev,reviewer,tester}.md`，不要把内容塞进 prompt
-- 主 Agent 自己**不写代码**——它只 orchestrate
-
-### Mode C — Agent 团队
-通过 `TeamCreate` 创建团队，用 `Agent` 工具的 `team_name` + `name` 参数同时 spawn 三名成员（dev、reviewer、tester）。成员之间通过 `SendMessage` 按名字寻址通信。主 Agent 的名字是 `team-lead`，成员上报时 `to` 参数写 `team-lead`。用于 L/XL 级阶段。
-
-三种模式的共同约束：
-- Dev 不审查自己的代码
-- Reviewer 跨轮一致——同一个上下文/同一份历史
-- 未经主 Agent 授权不得扩大范围
-- 提交是交付的一部分——ARCH.md + feat.md + test_case.md + 代码全部提交后阶段才算完成
-
-完整启动和成员提示模板：`../feature-exec/SKILL.md` + `references/subagent-prompts.md` + `references/role-cards/`（仅 Mode B）
+模式选择和环境检测在 Stage 3 完成。具体执行步骤在 `../feature-exec/SKILL.md` 各模式段落。
 
 ---
 
@@ -366,7 +366,8 @@ git worktree remove <worktree-path>
 - `../requirement/SKILL.md` — 需求讨论和文档产出
 - `../feature-exec/SKILL.md` — 带 Agent 团队的按阶段执行
 - `../regression-test/SKILL.md` — 用 test_case.md 跑回归测试，输出差异报告
+- `references/mode-guide.md` — 三种模式（A/B/C）的语义对比和选择指南
 - `references/subagent-prompts.md` — Mode C 团队成员的完整启动 prompt 模板
 - `references/role-cards/{dev,reviewer,tester}.md` — Mode B 一次性 subagent 的角色卡
 - `references/xs-mini-plan-template.md` — XS 快速通道的 mini-plan.md 模板
-- `references/config-schema.md` — `~/.vibe-well/config.yaml` 用户偏好 schema
+- `references/config-schema.md` — `~/.vibe-well/config.yaml` 用户偏好 + hooks schema

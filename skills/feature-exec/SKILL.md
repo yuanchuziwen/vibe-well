@@ -1,18 +1,32 @@
 ---
 name: feature-exec
-version: 1.0.0
-description: 当用户想要"实现某个阶段"、"开始写代码"、"执行 P1"、"运行第 N 阶段"、"实现已批准的方案"，或 feature-workflow 到达执行阶段时使用此技能。接收已批准的 plan.md，驱动完整周期：dev 写 Pn.md → reviewer 审查 → dev 和 tester 并行工作 → 两条轨道合并 → tester 执行 → dev 提交。S 级变更用 Mode A（主 Agent 直接执行），其余用 Mode C（Agent 团队通过 TeamCreate + SendMessage 协调）。
+version: 1.1.0
+description: 当用户想要"实现某个阶段"、"开始写代码"、"执行 P1"、"运行第 N 阶段"、"实现已批准的方案"，或 feature-workflow 到达执行阶段时使用此技能。接收已批准的 plan.md，驱动完整周期。三种模式按规模选：S/XS=Mode A（主 Agent 直接），M=Mode B（Task subagent 三角色，无 TeamCreate 依赖），L/XL=Mode C（Agent 团队通过 TeamCreate + SendMessage 协调）。
 ---
 
 # Feature Exec
 
 将一个阶段从已批准的方案驱动到已提交的代码。主 Agent 的职责：
-- **启动**：创建团队、spawn 三名成员
-- **监控**：在团队运行期间关注异常，必要时介入
-- **响应上报**：成员遇到超出权限的决策时回复
-- **收尾**：收到交付报告后 shutdown 成员、清理团队
+- **启动**：根据 Mode 直接执行 / spawn Task subagent / 创建 TeamCreate 团队
+- **监控**：执行期间关注异常，必要时介入
+- **响应上报**：subagent 或团队成员遇到超出权限的决策时回复
+- **收尾**：commit + 写交付报告 + 清理（Mode C 还要 TeamDelete）
 
-正常协作（方案审查、代码审查、测试用例评审、测试执行、失败修复）在成员之间通过 SendMessage 推进，主 Agent 不参与。
+## 章节导航
+
+按需读取，不必每次通读全文：
+
+| 章节 | 何时读 |
+|---|---|
+| § 所需输入 | 启动前确认前置依赖 |
+| § 预检：依赖检查 | 任何模式启动前 |
+| § 环境检测 + 模式选择 | 主 SKILL 已检测过则跳过 |
+| § Mode A | 选 A 时 |
+| § Mode B | 选 B 时（包含 Task subagent 启动模板） |
+| § Mode C | 选 C 时（包含 Step 0~4 启动步骤、上报机制、交付报告） |
+| § Hook 时点 | 检查 4 个生命周期 hook（A/B/C 共用表）|
+| § 恢复协议 | 中断后恢复时（state.json 状态机 + 9 stage 重启表）|
+| § 参考文件 | 末尾外链 |
 
 ## 所需输入
 
