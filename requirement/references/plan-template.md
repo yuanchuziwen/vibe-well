@@ -74,6 +74,9 @@ Deferred: P4 (reason: [lower priority / can be added later without rework])
 
 **Goal**: [one sentence — what capability or foundation this phase delivers]
 
+**Verification strategy**: <unit-tdd | curl-acceptance | visual-snapshot | visual-diff | manual | regression-suite>
+<!-- 见本文件末尾「Verification Strategy 选择指南」。默认 unit-tdd。 -->
+
 **Scope — in**:
 - [concrete deliverable]
 - [concrete deliverable]
@@ -209,3 +212,34 @@ Yes:
 - "Unauthenticated request to `/api/projects` returns 401"
 - "`SELECT COUNT(*) FROM users` shows the test user was created"
 - "Browser at 1440×900: clicking 'Create Project' opens the modal without console errors"
+
+---
+
+## Verification Strategy 选择指南
+
+每个 Phase 必须显式声明 `Verification strategy`。dev/tester 据此决定如何编写和执行测试。reviewer 收到 Pn.md 时应优先确认策略选得是否合理，再走后续审查。
+
+| 策略 | 适用变更类型 | 对应实现 | 是否走 TDD Red/Green |
+|---|---|---|---|
+| `unit-tdd` | 业务逻辑、算法、纯函数、数据处理、状态机 | 单元测试驱动 | ✅ 强制（默认） |
+| `curl-acceptance` | API 端点（含 unit 部分） | 单测 + curl/HTTP 验收脚本 | ✅ 强制 |
+| `visual-snapshot` | UI 组件（有可断言的渲染结构） | Storybook / 快照测试 + 人工目视 | ⚠️ 可选（仅断言可测部分） |
+| `visual-diff` | 纯样式变更（CSS / 主题 / 响应式调整） | 视觉对比 + 人工目视 | ❌ 跳过 |
+| `manual` | 文档站、配置、shell 脚本、运维脚本、原型 | 人工运行验收清单 | ❌ 跳过 |
+| `regression-suite` | 重构（不改外部行为） | 跑现有回归测试套件，无新断言 | ❌ 跳过（行为不变） |
+
+### 选择规则
+
+1. **优先选 `unit-tdd`**——只要变更里有可被单元测试覆盖的逻辑，就用它
+2. **混合变更**：选最重的那一档（既有逻辑又有 UI → `unit-tdd`，逻辑部分按 TDD 走，UI 部分用人工验证补充）
+3. **避免滥用 `manual`**：如果"懒得写测试"是主要动机，重新审视——不写测试通常意味着这块代码后续没人敢动
+4. **`regression-suite` 的前提**：现有回归套件覆盖率足够。若覆盖率不足以保证行为不变，应该先补测试（升级到 `unit-tdd`）再重构
+
+### feature-exec 的 TDD Phase 行为
+
+- `unit-tdd` / `curl-acceptance` → 走完整 TDD Red → reviewer 审单测 → Green → reviewer 审实现
+- `visual-snapshot` → Phase 3a 写可断言的快照/结构测试 + Phase 3b 写实现，reviewer 审两次；UI 视觉部分由 tester 在执行阶段人工验证
+- `visual-diff` / `manual` → 跳过 Phase 3a 的 TDD Red 强制要求，dev 直接进入实现，reviewer 仍审实现质量；tester 按验收清单人工/视觉验证
+- `regression-suite` → dev 跑现有测试套件作为 baseline（粘贴输出），实现完成后再跑一次确认全绿；不新增断言，但 reviewer 审"是否真的未改变行为"
+
+无论哪种策略，**测试运行证据（命令 + 输出）** 都必须附在 review 请求里。

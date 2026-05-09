@@ -16,6 +16,8 @@ description: 当用户想要"实现某个阶段"、"开始写代码"、"执行 P
 
 ## 所需输入
 
+**完整流程**（来自 plan.md 的 P<n>）：
+
 | 输入 | 来源 | 是否必须 |
 |---|---|---|
 | `discuss-result.md` | `design/<date>/discuss-result.md` | ✅ |
@@ -24,9 +26,41 @@ description: 当用户想要"实现某个阶段"、"开始写代码"、"执行 P
 | `feat.md` | 项目根目录 | ✅ |
 | `Pn.md` — 阶段方案 | `design/<date>/P<n>.md` | Mode A 由主 Agent 写，Mode C 由 dev 成员写 |
 
+**XS 快速通道**（来自主 SKILL Stage 0.5）：
+
+| 输入 | 来源 | 是否必须 |
+|---|---|---|
+| `mini-plan.md` | `design/<date>/mini-plan.md` | ✅ |
+| `ARCH.md` | 项目根目录 | ✅（用于命名/边界对齐，不要求修改） |
+| `feat.md` | 项目根目录 | ✅ |
+
+XS 模式下不读 `discuss-result.md` / `plan.md` / `Pn.md`；mini-plan.md 自包含。
+
 ---
 
 ## 预检：依赖检查
+
+**先判断本次调用是完整流程还是 XS 模式**：
+
+- 调用方传入 `mode: xs` 或显式提供 `mini-plan.md` 路径 → 走 **XS 预检**
+- 否则 → 走 **完整流程预检**
+
+### XS 预检
+
+```bash
+# 仅需项目文档 + mini-plan.md
+ls ARCH.md feat.md CLAUDE.md 2>/dev/null
+ls "<design_root>/mini-plan.md" 2>/dev/null
+```
+
+| 缺失内容 | 处理方式 |
+|---|---|
+| `ARCH.md` 或 `feat.md` | 调用 `project-onboard`（全量扫描），然后继续 |
+| `mini-plan.md` | 由调用方（主 SKILL Stage 0.5）按 `../references/xs-mini-plan-template.md` 生成，本技能不自动创建 |
+
+跳过 `discuss-result.md` / `plan.md` / `Pn.md` 检查——XS 模式不读这些。
+
+### 完整流程预检
 
 选择模式前，按顺序验证所有依赖是否存在：
 
@@ -87,18 +121,32 @@ ls -dt design/*/ 2>/dev/null | head -1 | xargs -I{} ls {}discuss-result.md {}pla
 
 1. 读取 ARCH.md（§2、§4、§5、§7、§8）、feat.md、discuss-result.md、Pn.md
 2. 读取所有待修改文件，包括调用方和依赖方
-3. **TDD Red**：先为 Pn.md §Acceptance checklist 每项编写失败单元测试，运行确认全部失败（粘贴失败输出）
-4. **TDD Green**：写最小实现让所有测试通过，运行确认全绿（粘贴通过输出）
+3. **根据 Pn.md `Verification strategy` 选择实现路径**（详见 `../requirement/references/plan-template.md` 末尾「Verification Strategy 选择指南」）：
+
+   | 策略 | 步骤 3 行为 | 步骤 4 行为 |
+   |---|---|---|
+   | `unit-tdd` / `curl-acceptance` | **TDD Red**：为验收清单每项写失败单测，运行确认全失败（粘贴输出）| **TDD Green**：写最小实现让所有单测通过（粘贴通过输出）|
+   | `visual-snapshot` | 编写可断言的快照/结构测试，运行确认失败 | 写实现让快照测试通过 + 人工目视确认 UI |
+   | `visual-diff` | 不写自动化测试，记录变更前后的截图 baseline | 实现样式变更，输出对比截图 |
+   | `manual` | 不写自动化测试，准备验收脚本/手动步骤清单 | 实现 + 按清单逐项执行 |
+   | `regression-suite` | 跑现有测试套件得到 baseline（粘贴绿色输出）| 完成重构后再跑一次确认全绿、行为不变 |
+
+4. 见上表步骤 4 行为
 5. 自审：
    - 代码与 Pn.md 一致、无不变量被破坏、无死代码、命名符合 §8
-   - 少实现检查：Pn.md §Acceptance checklist 每项都有对应实现和测试
+   - 少实现检查：Pn.md §Acceptance checklist 每项都有对应实现，**且按所选策略有相应验证证据**
    - 过度实现检查：无 Scope — out 以外的改动
-6. 针对 Pn.md 验收清单运行浏览器 / curl 测试——粘贴证明
+6. 针对 Pn.md 验收清单运行浏览器 / curl / 手工验收——粘贴证明（截图、curl 输出、命令日志均可）
 7. **调试铁律**（步骤 4 或 6 有失败时）：先找根因再修复，每次只改一个变量；3 次修复仍失败则停下来质疑设计，向用户上报
-8. 更新 feat.md、ARCH.md（仅受影响的章节）、test_case.md（追加该阶段的 TC）
-9. Git commit：代码 + 测试 + feat.md + ARCH.md + test_case.md 一次性提交
+8. 更新 feat.md、ARCH.md（仅受影响的章节）、test_case.md（追加该阶段的 TC，标注验证策略）
+9. Git commit：代码 + 测试（如有）+ feat.md + ARCH.md + test_case.md 一次性提交
 
-交付物：commit SHA + 测试证明（含测试命令输出）。
+**XS 快速通道下的简化**：当 feature-exec 被传入 `mode: xs` 标记时（来自主 SKILL Stage 0.5）：
+- 输入文件用 `mini-plan.md` 替代 `Pn.md` + `discuss-result.md`
+- 步骤 8 通常只需更新 feat.md（mini-plan 默认不动 ARCH）
+- 仍按 `verification_strategy` 选择步骤 3/4 路径
+
+交付物：commit SHA + 验证证据（按策略类型输出对应证据）。
 
 ---
 
@@ -116,12 +164,19 @@ reviewer → dev：审查 Pn.md（多轮直至 PASS）
     ▼ Pn.md 批准
     │
     ├─── Dev 轨道 ──────────────────────────────────────────────┐
-    │    Phase 3a：dev 写失败单测（TDD Red）+ 运行确认失败       │
-    │    dev → reviewer：TDD 单测审查请求（附失败输出）          │
-    │    reviewer ↔ dev：审查测试设计（多轮直至 PASS）           │
+    │    Phase 3a：按 Pn.md verification_strategy 准备验证基线   │
+    │      · unit-tdd / curl-acceptance：写失败单测 (TDD Red)    │
+    │      · visual-snapshot：写快照/结构测试，确认失败          │
+    │      · visual-diff / manual：跳过 3a，记录截图或手工步骤   │
+    │      · regression-suite：跑现有测试得到全绿 baseline       │
+    │    dev → reviewer：3a 产出审查请求（附测试或基线证据）     │
+    │    reviewer ↔ dev：审查测试/基线设计（多轮直至 PASS）      │
     │                                                           │
-    │    Phase 3b：dev 写最小实现（TDD Green）+ 运行确认全绿     │
-    │    dev → reviewer：代码质量审查请求（附通过输出）          │
+    │    Phase 3b：dev 写最小实现 + 运行验证                     │
+    │      · TDD 类策略：让 3a 单测全绿（粘贴通过输出）          │
+    │      · visual-* / manual：实现 + 按对应方式验证            │
+    │      · regression-suite：实现后重跑测试确认仍全绿          │
+    │    dev → reviewer：代码质量审查请求（附验证证据）          │
     │    reviewer ↔ dev：审查实现质量（多轮直至 PASS）           │
     │                                                           │
     └─── Tester 轨道 ────────────────────────────────────────────┤
@@ -341,9 +396,10 @@ test_case.md 更新：TC-<n> ~ TC-<m> 新增，TC-<x> 废弃 / 无变化
 - **Dev 不审查自己的工作** — reviewer 始终是独立的成员
 - **Pn.md 由 dev 编写，reviewer 审查** — 不要让同一个人既写又审
 - **Reviewer 上下文跨轮次保持** — 修复后由同一个 reviewer 重新审查，不换人
-- **TDD 顺序不可跳过** — 先写失败单测（Phase 3a，经 reviewer 确认）再写实现（Phase 3b），不得先实现后补测试
-- **测试运行证据必须附上** — dev 每次请求 review 时必须附测试命令输出，不能只口头说"通过了"
-- **单元测试是进入代码质量审查的门槛** — Phase 3a TDD 单测未经 reviewer PASS，不得进入 Phase 3b
+- **TDD 顺序按 verification_strategy 决定** — `unit-tdd` / `curl-acceptance` / `visual-snapshot` 必须先写失败测试再写实现，不得先实现后补测试；`visual-diff` / `manual` / `regression-suite` 按对应路径走
+- **reviewer 必须先确认 verification_strategy 选择合理**——审 Pn.md 时把策略合理性作为首要审查项
+- **验证证据必须附上** — dev 每次请求 review 时必须附测试命令输出 / 截图 / 手工验收日志，不能只口头说"通过了"
+- **基线产出是进入代码质量审查的门槛** — Phase 3a 产出未经 reviewer PASS，不得进入 Phase 3b
 - **两条轨道均 PASS 后才能执行测试** — tester 在收到 reviewer 的明确通知前不执行
 - **提交是交付的一部分** — 代码 + ARCH.md + feat.md + test_case.md 全部提交后阶段才算完成
 - **未经授权不得扩大范围** — Pn.md §范围——包含 以外的任何改动都需先获授权

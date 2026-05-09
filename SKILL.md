@@ -21,21 +21,45 @@ description: 当用户想要"开发新功能"、"开始一个功能"、"端到�
 
 ---
 
+## 启动前：读取用户偏好
+
+进入 Stage 0 前，**先读取用户级偏好**：
+
+```bash
+ls ~/.vibe-well/config.yaml 2>/dev/null
+```
+
+- **存在**：立即读取 `references/config-schema.md` 了解字段含义，然后读 `~/.vibe-well/config.yaml` 解析 `defaults`，并合并 `projects.<当前 git 根>` 的覆盖（若有）。后续涉及 Stage 0.5 / 2 / 3 / 5 提问时，把配置值作为默认选项呈现给用户。
+- **不存在**：使用 `references/config-schema.md` Schema 中标注的默认值。**不主动创建**该文件，除非用户明确要求"保存为默认"。
+
+向用户提问时遵循"已有偏好就用偏好作默认值"的规则，例如：
+
+```
+"使用功能级 worktree（你的偏好默认值）？[Y/n]"
+```
+
+**用户当前回答始终优先**——这次用什么用户说了算，配置只是默认。仅在用户说"以后都这样" / "记住这个偏好"时才回写 `~/.vibe-well/config.yaml`。
+
+---
+
 ## 工作流概览
 
 ```
-Stage 0 · 文档检查      → ARCH.md 缺失或过期时运行 project-onboard
-Stage 1 · 需求讨论      → discuss.md → discuss-result.md → plan.md
-                           🛑 Gate：用户批准 plan.md
-Stage 2 · Worktree 配置 → 确认是否使用 worktree 及粒度
-                           🛑 Gate：用户确认 worktree 策略和分支名
-Stage 3 · 模式选择      → 环境检测 → 每个阶段选择模式 A 或 C
-                           🛑 Gate：用户确认每个阶段的模式
-Stage 4 · 执行          → 每个阶段运行 feature-exec
-                           🛑 Gate：每个阶段的交付报告 + 测试证明
-Stage 5 · 收尾          → 所有阶段完成后：全量测试 + 合并/PR/保留/丢弃
-                           🛑 Gate：用户选择收尾方式
+Stage 0   · 文档检查      → ARCH.md 缺失或过期时运行 project-onboard
+Stage 0.5 · 复杂度快筛    → 3 问筛选：XS 走快速通道；其余走完整流程
+Stage 1   · 需求讨论      → discuss.md → discuss-result.md → plan.md
+                             🛑 Gate：用户批准 plan.md
+Stage 2   · Worktree 配置 → 确认是否使用 worktree 及粒度
+                             🛑 Gate：用户确认 worktree 策略和分支名
+Stage 3   · 模式选择      → 环境检测 → 每个阶段选择模式 A 或 C
+                             🛑 Gate：用户确认每个阶段的模式
+Stage 4   · 执行          → 每个阶段运行 feature-exec
+                             🛑 Gate：每个阶段的交付报告 + 测试证明
+Stage 5   · 收尾          → 所有阶段完成后：全量测试 + 合并/PR/保留/丢弃
+                             🛑 Gate：用户选择收尾方式
 ```
+
+**XS 快速通道**：Stage 0.5 判定为 XS 时，跳过 Stage 1~3，仅生成一份 `mini-plan.md`，直接进入 Stage 4 简化执行，最后走 Stage 5 收尾。详见 Stage 0.5 章节。
 
 ---
 
@@ -48,6 +72,40 @@ ls CLAUDE.md ARCH.md feat.md 2>/dev/null
 - **文件缺失**：立即读取 `project-onboard/SKILL.md` 并按其工作流执行（全量扫描）
 - **文件存在**：读取 `project-onboard/SKILL.md`，由它执行新鲜度判断（git SHA 对比）并决定是否需要增量更新
 - 不要在顶层自行做 SHA 对比——project-onboard 内部有完整的新鲜度检测逻辑
+
+---
+
+## Stage 0.5 · 复杂度快筛
+
+文档就绪后，**先用 3 个问题判断本次需求的复杂度**，避免对小变更套用重型流程。
+
+向用户连续问（一次性给出，让用户一次回答）：
+
+> "在开始前先做个快筛——以下三问任意一个为「是」，就走完整流程；全部为「否」，走 XS 快速通道：
+>
+> 1. 本次变更是否引入**新模块、新表、新 API、新依赖**？
+> 2. 是否影响 **ARCH.md §4（模块边界）/ §5（数据模型）/ §7（不变量）** 任一项？
+> 3. 是否需要超过 **1 小时**人工实现？"
+
+| 用户回答 | 路径 |
+|---|---|
+| 全部"否" | **XS 快速通道**（见下） |
+| 任一"是" | 进入 Stage 1，走完整流程 |
+| 用户不确定 | 默认走完整流程（保守选择） |
+
+**用户偏好覆盖**：如果 `~/.vibe-well/config.yaml` 中 `defaults.skip_gate_when_trivial: false`，跳过本筛选直接进入 Stage 1（用户偏好仪式感）。
+
+### XS 快速通道
+
+立即读取 `references/xs-mini-plan-template.md` 并按其约定执行：
+
+1. 在 `design/<YYYYMMDD>-<feature-slug>/` 下生成 `mini-plan.md`（不生成 discuss / plan）
+2. 跳过 Stage 2（不开 worktree，直接当前分支）和 Stage 3（默认 Mode A）
+3. 进入简化版 Stage 4：调用 `feature-exec`，传入 `mini-plan.md` 路径和 `mode: xs` 标记
+4. feature-exec 内部根据 `verification_strategy` 决定是否走 TDD
+5. 完成后走 Stage 5 收尾（通常合并到当前分支，无需 PR）
+
+**XS 通道的 escape hatch**：执行过程中如果发现实际复杂度超过 XS 范围（跨多模块、需要新 schema、超过 2 小时仍未完成、引入新依赖），主 Agent 必须停下来向用户上报，提议升级到完整流程，**不要硬撑**。
 
 ---
 
@@ -69,14 +127,18 @@ ls CLAUDE.md ARCH.md feat.md 2>/dev/null
 
 ## Stage 2 · Worktree 配置
 
-`plan.md` 批准后，主动询问用户：
+`plan.md` 批准后，主动询问用户。**如果已加载用户偏好**，把 `defaults.worktree_strategy` 作为默认选项呈现：
 
-> "要为这个功能使用 git worktree 吗？选项：
+> "要为这个功能使用 git worktree 吗？（你的偏好：**功能级**）选项：
 > - **不使用 worktree** — 直接在当前分支工作（最简单；适合 S 级单阶段工作）
 > - **功能级 worktree** — 整个功能使用一个 worktree，所有阶段提交到同一分支（适合串行阶段或每个功能一个 PR）
 > - **阶段级 worktree** — 每个阶段单独一个 worktree，各有独立分支和 PR（适合并行阶段或 M/L/XL 规模的隔离需求）
 >
-> 请选择？"
+> 默认按你的偏好继续（功能级），还是另选？"
+
+未加载偏好时，按原措辞询问，不附"你的偏好"提示。
+
+**分支名**：使用 `defaults.branch_template`（默认 `feat/{slug}/p{n}-{phase_slug}`）渲染默认值并展示，用户可一键确认或修改。
 
 根据回答操作：
 
@@ -86,9 +148,10 @@ ls CLAUDE.md ARCH.md feat.md 2>/dev/null
 | 功能级 | 现在执行一次 `git worktree add <path> -b <branch>`。记录路径和分支。所有阶段的 `<project_root>` = worktree 路径。 |
 | 阶段级 | 暂不创建 worktree。每个阶段启动时执行 `git worktree add <path> -b <branch>`。每个阶段单独记录路径和分支。该阶段的 `<project_root>` = 该阶段的 worktree 路径。 |
 
-分支命名规范（建议，允许用户覆盖）：
-- 功能级：`feat/<feature-slug>`
-- 阶段级：`feat/<feature-slug>/p<n>-<phase-slug>`
+分支命名规范（默认模板来自 `defaults.branch_template`，用户可覆盖）：
+- 默认模板：`feat/{slug}/p{n}-{phase_slug}`
+- 功能级 worktree 时阶段编号 `{n}` 留空、`{phase_slug}` 留空 → `feat/<slug>`
+- 阶段级 worktree 时按完整模板渲染 → `feat/<slug>/p<n>-<phase-slug>`
 
 **关于设计文件路径**：`design/<YYYYMMDD>-<feature-slug>/` 目录里的 discuss-result.md、plan.md、Pn.md 始终位于**原始仓库**，不在 worktree 内。feature-exec 启动成员时要单独传 `<design_root>`（设计目录的绝对路径），不能用 `<project_root>/<design_dir>` 拼接，否则在 worktree 场景下会找不到文件。
 
@@ -175,14 +238,23 @@ dev 更新 ARCH.md + feat.md + test_case.md + git commit → 交付报告
 
 **Step 1 — 全量测试验证**
 
+是否运行：
+- 完整流程（走过 Stage 1）：默认运行（受 `defaults.run_full_test_on_finish`，默认 `true` 控制）
+- XS 快速通道：默认跳过（受 `defaults.run_full_test_on_xs`，默认 `false` 控制）
+
+测试命令优先级：
+1. 项目脚本（`package.json` 的 `test` / `Makefile` 的 `test` 目标 / `pyproject.toml` 的 test 命令）
+2. `defaults.test_command` 兜底值
+3. 都没有 → 跳过 Step 1，告知用户"未发现测试命令，跳过全量测试"
+
 ```bash
-# 运行项目的完整测试套件（根据技术栈调整命令）
+# 自动按技术栈尝试
 npm test / pnpm test / pytest / go test ./... / cargo test
 ```
 
 若有失败：列出失败项，告知用户"全量测试未通过，需在合并前修复"，不要继续。
 
-若全绿：继续 Step 2。
+若全绿或被跳过：继续 Step 2。
 
 **Step 2 — 询问用户收尾方式**
 
@@ -224,6 +296,9 @@ git worktree remove <worktree-path>
 - ❌ ARCH.md 缺失时跳过 `project-onboard`——没有架构上下文的执行会产生不可靠的输出
 - ❌ 成员异常时主 Agent 擅自 spawn 替换或直接接手——应停下来由用户决策
 - ❌ 在不支持 TeamCreate 的环境里硬跑 Mode C——会退化成多个孤立的子 Agent
+- ❌ XS 通道里硬撑——发现复杂度超标却继续，最终绕过 Stage 1 的需求讨论
+- ❌ 把 `manual` 当作"懒得写测试"的逃生口——`verification_strategy` 必须按变更类型选，reviewer 应在审 Pn.md 时质疑滥用
+- ❌ 自动写入 `~/.vibe-well/config.yaml`——只有用户明确说"以后都这样"时才回写
 
 ---
 
@@ -233,3 +308,5 @@ git worktree remove <worktree-path>
 - `requirement/SKILL.md` — 需求讨论和文档产出
 - `feature-exec/SKILL.md` — 带 Agent 团队的按阶段执行
 - `references/subagent-prompts.md` — 成员提示模板（dev、reviewer、tester）
+- `references/xs-mini-plan-template.md` — XS 快速通道的 mini-plan.md 模板
+- `references/config-schema.md` — `~/.vibe-well/config.yaml` 用户偏好 schema
