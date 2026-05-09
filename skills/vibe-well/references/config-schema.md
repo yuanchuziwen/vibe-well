@@ -28,6 +28,10 @@ defaults:
   run_full_test_on_xs: false          # XS 完成后是否跑全量测试（默认 false，节省时间）
   run_full_test_on_finish: true       # Stage 5 收尾前是否跑全量测试（默认 true）
 
+  # Regression-test skill（可选）
+  regression_default_strategy: risk   # full | risk (默认) | incremental | tagged:<domain>
+  prompt_regression_on_finish: true   # Stage 5 全量测试通过后是否提示用户跑回归
+
 # Hooks（可选）
 # 在工作流的 6 个时点触发用户脚本。每个 hook 独立配置；不配置则跳过。
 hooks:

@@ -291,6 +291,12 @@ dev 更新 ARCH.md + feat.md + test_case.md + git commit → 交付报告
 2. `defaults.test_command` 兜底值
 3. 都没有 → 跳过 Step 1，告知用户"未发现测试命令，跳过全量测试"
 
+**可选**：测试通过后，如果项目维护了 `test_case.md`，询问用户是否额外跑一次回归测试：
+> "全量单测已通过。要顺便跑一次基于 `test_case.md` 的功能回归测试吗？（推荐策略：`risk`——只跑 Type=regression/risk 的 TC，约 N 条）[Y/n]"
+>
+> 选择 Y → 调用 `../regression-test/SKILL.md`，把回归报告路径附在最终交付报告里。
+> 选择 n → 跳到 Step 2。
+
 ```bash
 # 自动按技术栈尝试
 npm test / pnpm test / pytest / go test ./... / cargo test
@@ -359,6 +365,7 @@ git worktree remove <worktree-path>
 - `../project-onboard/SKILL.md` — 代码库探索和文档生成
 - `../requirement/SKILL.md` — 需求讨论和文档产出
 - `../feature-exec/SKILL.md` — 带 Agent 团队的按阶段执行
+- `../regression-test/SKILL.md` — 用 test_case.md 跑回归测试，输出差异报告
 - `references/subagent-prompts.md` — Mode C 团队成员的完整启动 prompt 模板
 - `references/role-cards/{dev,reviewer,tester}.md` — Mode B 一次性 subagent 的角色卡
 - `references/xs-mini-plan-template.md` — XS 快速通道的 mini-plan.md 模板
