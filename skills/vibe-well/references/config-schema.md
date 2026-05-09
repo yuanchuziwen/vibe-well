@@ -28,12 +28,36 @@ defaults:
   run_full_test_on_xs: false          # XS 完成后是否跑全量测试（默认 false，节省时间）
   run_full_test_on_finish: true       # Stage 5 收尾前是否跑全量测试（默认 true）
 
+# Hooks（可选）
+# 在工作流的 6 个时点触发用户脚本。每个 hook 独立配置；不配置则跳过。
+hooks:
+  on_plan_approved:    null  # plan.md 用户批准后
+  on_phase_started:    null  # feature-exec 进入 init 阶段后
+  on_pn_approved:      null  # Pn.md PASS（仅 M/L/XL 阶段）
+  on_phase_committed:  null  # git commit 完成、delivered 之前
+  on_phase_delivered:  null  # 阶段交付报告输出后
+  on_feature_finished: null  # Stage 5 收尾完成
+
+# Hook 配置格式（任一时点）：
+# hooks:
+#   on_phase_committed:
+#     command: "scripts/post-commit.sh"   # 必填—相对 git 仓库根的命令；shell 执行
+#     mode:    warn                        # warn (默认) | block
+#     timeout_ms: 60000                    # 可选—默认 60s
+# Hook 进程的 stdin 自动注入 JSON 上下文：
+#   { phase: {...}, mode: "A|B|C|xs", commit_sha?, design_root, context_ref? }
+# Hook 退出码：0 视为成功；非 0：mode=warn 警告并继续，mode=block 阻断主流程
+
 # 项目覆盖（可选）
-# 当前 git 仓库根路径作为 key 时，覆盖上面的 defaults
+# 当前 git 仓库根路径作为 key 时，覆盖上面的 defaults / hooks
 projects:
   "/Users/me/proj-a":
     worktree_strategy: phase
     branch_template: "ai/{slug}/p{n}"
+    hooks:
+      on_phase_committed:
+        command: "make ci-fast"
+        mode: warn
 ```
 
 ## 读取规则
@@ -55,6 +79,37 @@ projects:
 "使用功能级 worktree（你的偏好默认值）？[Y/n]"
 "分支命名 feat/user-auth/p1-auth-layer（按你的模板）？[Y/n]"
 ```
+
+## Hook 执行规则
+
+主 Agent / feature-exec 在每个 hook 时点检查：
+
+```
+1. 合并后的 hooks.<event> 是否为 null/缺失？是 → 跳过
+2. 是 → 取 command + mode + timeout_ms（默认 60000）
+3. 在 git 仓库根目录用 shell 执行 command，stdin 注入 JSON：
+   {
+     "event":       "on_phase_committed",
+     "phase":       { "num": 1, "name": "auth-layer", "size": "M" },
+     "mode":        "B",
+     "commit_sha":  "<sha or null>",
+     "design_root": "<abs path>",
+     "context_ref": "<abs path or null>",
+     "timestamp":   "<ISO 8601>"
+   }
+4. 等待最多 timeout_ms ms：
+   - 退出码 0：日志记录"hook <event> 通过"，继续
+   - 退出码非 0：
+     * mode=warn  → 打印 stderr 摘要 + 继续
+     * mode=block → 打印 stderr 全文 + 询问用户：忽略 / 修复后重跑 / 中止
+   - 超时：当作非 0 处理
+5. Hook 输出到 <design_root>/.vibe-well/hooks.log（每行 JSON：event/start/end/exit）
+```
+
+**关键约束**：
+- Hook 失败**不应自动修复**——主 Agent 不要替用户判断"小问题"
+- Hook 命令**不接受参数列表**——所有参数走 stdin JSON，避免 shell 转义问题
+- `mode=block` 只用于真正不能跳过的检查（如 lint / format）；其它一律 warn
 
 ## 何时主动写入配置
 

@@ -140,6 +140,8 @@ ls CLAUDE.md ARCH.md feat.md 2>/dev/null
 
 🛑 **Gate 1**：用户批准 `plan.md`（阶段边界、顺序、范围）。这是用户做产品和技术方向决策的最后时机，此后执行基本自主进行。
 
+**🪝 Hook**：用户批准 `plan.md` 后立即触发 `on_plan_approved`（如已配置）。详见 `references/config-schema.md` § Hook 执行规则。
+
 ---
 
 ## Stage 2 · Worktree 配置
@@ -325,6 +327,8 @@ git worktree remove <worktree-path>
 
 不使用 worktree 时跳过清理步骤。
 
+**🪝 Hook**：选项 1/2 执行成功后触发 `on_feature_finished`（如已配置）。选项 4 不触发。
+
 ---
 
 ## 常见失败模式
@@ -345,6 +349,8 @@ git worktree remove <worktree-path>
 - ❌ Mode B 中跳过 `.reviews/` 历史——下一轮 reviewer 启动时不传历史，会反复指出同一问题
 - ❌ 中断恢复时跳过 state.json 直接重做——浪费已完成的 review 轮次和测试证据
 - ❌ 跨阶段复用 `.vibe-well/state.json`——每阶段必须独立，否则 checkpoint 会错乱
+- ❌ 把 lint / format 等"提交前检查"配成 `on_phase_committed` hook——这类检查应该用 git pre-commit hook，vibe-well 的 hook 是 commit 之后跑的
+- ❌ 用 `mode: block` hook 替代用户决策——hook 失败应该给用户选择权（忽略/修复/中止），不要让 hook 自动 abort 整个流程
 
 ---
 

@@ -122,6 +122,7 @@ ls -dt design/*/ 2>/dev/null | head -1 | xargs -I{} ls {}discuss-result.md {}pla
 
 ## Mode A — 主 Agent 直接执行
 
+0. **🪝 Hook**：触发 `on_phase_started`（如已配置）
 1. 读取 ARCH.md（§2、§4、§5、§7、§8）、feat.md、discuss-result.md、Pn.md
 2. 读取所有待修改文件，包括调用方和依赖方
 3. **根据 Pn.md `Verification strategy` 选择实现路径**（详见 `../requirement/references/plan-template.md` 末尾「Verification Strategy 选择指南」）：
@@ -143,6 +144,7 @@ ls -dt design/*/ 2>/dev/null | head -1 | xargs -I{} ls {}discuss-result.md {}pla
 7. **调试铁律**（步骤 4 或 6 有失败时）：先找根因再修复，每次只改一个变量；3 次修复仍失败则停下来质疑设计，向用户上报
 8. 更新 feat.md、ARCH.md（仅受影响的章节）、test_case.md（追加该阶段的 TC，标注验证策略）
 9. Git commit：代码 + 测试（如有）+ feat.md + ARCH.md + test_case.md 一次性提交
+10. **🪝 Hook**：commit 完成后触发 `on_phase_committed`（如已配置）；交付报告输出后触发 `on_phase_delivered`
 
 **XS 快速通道下的简化**：当 feature-exec 被传入 `mode: xs` 标记时（来自主 SKILL Stage 0.5）：
 - 输入文件用 `mini-plan.md` 替代 `Pn.md` + `discuss-result.md`
@@ -590,6 +592,25 @@ test_case.md 更新：TC-<n> ~ TC-<m> 新增，TC-<x> 废弃 / 无变化
 - **调试先找根因** — 修复失败前先复现、追根因；3 次修复失败向 team-lead 上报，不继续猜测
 - **成员间通信必须用 SendMessage** — 成员的文字输出对队友不可见
 - **主 Agent 的名字是 `team-lead`** — 成员上报时 `to="team-lead"`
+
+---
+
+## Hook 时点（三种模式共用）
+
+合并后的 `~/.vibe-well/config.yaml` `hooks.<event>` 字段在以下 4 个时点检查并执行（schema + 执行规则见 `../vibe-well/references/config-schema.md`）：
+
+| 时点 | Mode A | Mode B | Mode C | XS |
+|---|---|---|---|---|
+| `on_phase_started` | Step 0（在读 ARCH 之前） | 主 Agent 写完 exec-context.json 后、第一个 Task() 之前 | TeamCreate 之后、spawn 成员之前 | feature-exec 入口处 |
+| `on_pn_approved` | Pn.md 自审通过后 | reviewer subagent 返回 PASS 后 | reviewer 把 Pn.md 标记为 PASS 后 | 不触发（XS 用 mini-plan，无 Pn）|
+| `on_phase_committed` | 步骤 9 完成后 | dev subagent `final-commit` 返回后 | dev → team-lead 交付前 | commit 完成后 |
+| `on_phase_delivered` | 步骤 10 输出交付报告后 | 主 Agent 输出交付报告后 | TeamDelete 之前 | 输出交付报告后 |
+
+**Hook 失败处理**：
+- `mode: warn`（默认）→ 打印警告继续
+- `mode: block` → 询问用户：忽略 / 修复后重跑 / 中止阶段
+
+**Hook 不阻断 commit 本身**——`on_phase_committed` 在 commit 之后才跑，避免与 git 自身 pre-commit hook 冲突。需要"提交前检查"的请用 git pre-commit hook，不要塞到 vibe-well。
 
 ---
 
