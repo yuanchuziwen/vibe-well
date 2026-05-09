@@ -2,7 +2,21 @@
 
 feature-exec Mode C Agent 团队的启动提示。同时 spawn 三名成员。
 
-## 变量替换
+## 推荐：让成员先读 exec-context.json（v2.4+）
+
+启动前，team-lead 先在 `<design_root>/.vibe-well/exec-context.json` 写入本阶段上下文（schema 见 `feature-exec/SKILL.md` Mode C § Step 0）。然后**每个成员的启动提示头部加一行**：
+
+```
+启动后第一件事：读取 <design_root>/.vibe-well/exec-context.json，
+所有变量值（project_root、design_root、phase、verification_strategy、成员名等）以这个文件为准。
+本提示中出现的 <xxx> 占位符是字段释义，不需要再做手工替换。
+```
+
+加完这一行后，下面的成员提示中所有 `<project_root>` `<design_root>` `<phase_num>` `<phase_name>` `<dev_name>` `<reviewer_name>` `<tester_name>` `<team_lead_name>` 都自动从 context 解析，**不需要 spawn 时手工替换**。
+
+如果不想用 exec-context.json（手工替换占位符也可以，向后兼容），跳过本节，按下面的「变量替换」流程做。
+
+## 变量替换（向后兼容路径）
 
 spawn 时，在每个提示中替换以下变量：
 

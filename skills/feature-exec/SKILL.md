@@ -232,28 +232,29 @@ mkdir -p <design_root>/.reviews
 
 ### Task subagent 启动模板
 
-每次 spawn 用以下格式（替换 `<…>` 占位符）：
+**前提**：先按 Mode C 「Step 0 — 写 exec-context.json」 在 `<design_root>/.vibe-well/exec-context.json` 写入本阶段上下文（Mode B 也用这份 schema，`team.members` 仅 `lead` 字段必填，其余可省略；`mode` 字段填 `"B"`）。
+
+每次 spawn 用以下精简格式：
 
 ```
 你扮演 <role>（dev / reviewer / tester），任务标签：<task-label>
-角色卡：阅读 <project_root>/.../role-cards/<role>.md（角色卡是你的行为指南，必须严格遵守）
 
-本次执行上下文:
-  project_root: <abs path>
-  design_root:  <abs path>
-  phase:        P<n> · <name> (size=<S|M|L|XL>)
-  verification_strategy: <unit-tdd | curl-acceptance | visual-snapshot | visual-diff | manual | regression-suite>
+# 第一步：读上下文
+1. 读取 <design_root>/.vibe-well/exec-context.json — 这里有 project_root、design_root、phase、verification_strategy 等所有变量
+2. 读取角色卡 <project_root>/.../role-cards/<role>.md — 你的行为指南，必须严格遵守
 
 # 仅 reviewer 任务：附上历史反馈
 前几轮反馈历史在 <design_root>/.reviews/<task>-round*.md
 （如果是 round 1，跳过这条）
 
 # 任务具体说明
-<本轮任务描述，如 "为验收清单 1~3 写失败单测，运行 pnpm test 确认全失败">
+<本轮任务描述，如 "为验收清单 1~3 写失败单测，运行 context.test_command 确认全失败">
 
 # 输出要求
-按角色卡末尾的"输出格式"严格返回。
+按角色卡末尾的"输出格式"严格返回。结束时把关键产出文件路径列在输出末尾。
 ```
+
+**为什么这样写**：原本要在 prompt 里展开 8 个变量（project_root、design_root、phase_num、phase_name、verification_strategy、dev_name、reviewer_name、tester_name），现在主 Agent 只需在 context.json 写一次，所有 subagent 共享同一份真相。出错率显著降低。
 
 ### 主 Agent 在 Mode B 期间的职责
 
@@ -343,6 +344,53 @@ dev → 主 Agent（team-lead）：交付报告
 ### 启动步骤
 
 **立即读取 `../vibe-well/references/subagent-prompts.md` 获取各成员的完整启动提示。**
+
+**Step 0 — 写 exec-context.json**（推荐，让所有成员只需读一行 JSON 即可获得全部上下文）
+
+在 spawn 任何成员之前，先在 `<design_root>/.vibe-well/exec-context.json` 写入本阶段的执行上下文：
+
+```json
+{
+  "schema_version": 1,
+  "phase":   { "num": 1, "name": "auth-layer", "size": "M" },
+  "mode":    "C",
+  "paths": {
+    "project_root": "/Users/me/proj",
+    "design_root":  "/Users/me/proj/design/20260509-user-auth"
+  },
+  "branch":   "feat/user-auth/p1-auth-layer",
+  "worktree": "/Users/me/proj-worktrees/p1-auth-layer",
+  "team": {
+    "team_name": "p1-auth-layer",
+    "members":   { "dev": "dev", "reviewer": "reviewer", "tester": "tester", "lead": "team-lead" }
+  },
+  "verification_strategy": "unit-tdd",
+  "test_command":  "pnpm test"
+}
+```
+
+**Schema 字段说明**：
+
+| 字段 | 含义 | 谁填 |
+|---|---|---|
+| `schema_version` | 1（首版本，未来兼容性预留）| 主 Agent |
+| `phase.{num,name,size}` | 来自 plan.md 阶段块 | 主 Agent |
+| `mode` | A / B / C / xs | Stage 3 决策结果 |
+| `paths.project_root` | worktree 或仓库根（见 Step 1）| Stage 2 决策结果 |
+| `paths.design_root` | 设计文件目录（始终原仓库）| Stage 1 输出 |
+| `branch` | 当前分支名 | Stage 2 决策结果 |
+| `worktree` | worktree 路径（不使用时为 null）| Stage 2 决策结果 |
+| `team.team_name` | Mode C 用；其它模式为 null | 本步骤决定 |
+| `team.members` | Mode C 用；Mode B 仅 `lead` 字段；Mode A null | 本步骤决定 |
+| `verification_strategy` | 来自 Pn.md（Mode C 由 dev 写入后由主 Agent 回填）| Pn.md 批准后回填 |
+| `test_command` | 项目脚本 / `defaults.test_command` | 启动检测 |
+
+**为什么需要这个文件**：
+- 成员 prompt 不再需要 8 个手工替换的占位符——只需引用 context 文件路径
+- 跨阶段 / 跨 mode 共用同一份 schema，恢复协议（state.json）和 context 解耦
+- Pn.md 批准后回填 `verification_strategy` 给 tester / reviewer 直接读，不再靠 prompt 串传
+
+下面的 Step 1~4 是各字段值的来源说明——**实际操作中按 Step 0 一次性写好**。
 
 **Step 1 — 确定路径变量**
 
