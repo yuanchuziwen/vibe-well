@@ -62,7 +62,7 @@ spawn 时，在每个提示中替换以下变量：
 ### Phase 1 — 编写 Pn.md（如果不存在）
 1. 检查 `<design_root>/P<phase_num>.md` 是否存在
 2. 如果不存在，基于 plan.md 中 P<phase_num> 的描述 + discuss-result.md 的技术决策，编写 Pn.md
-   - 参考模板：`~/.agents/skills/vibe-well/requirement/references/plan-template.md` 的"Phase Details"部分（如找不到，也可参考 `<design_root>/../` 附近的 requirement 目录）
+   - 参考格式：`<design_root>/plan.md` 中本阶段（P<phase_num>）的 Phase Details 章节，按其字段结构展开即可——它本身就是按主仓库 `plan-template.md` 渲染出来的
    - 必须包含：目标、范围（in/out）、变更文件列表、验收清单、风险说明
 3. 保存到 `<design_root>/P<phase_num>.md`
 4. 用 SendMessage 通知 `<reviewer_name>`："Pn.md 已写好在 `<design_root>/P<phase_num>.md`，请审查。"
@@ -311,17 +311,25 @@ Pn.md PASS 后，再发两条消息：
 
 你的文字输出对队友不可见，必须用 SendMessage 才能联系他们。
 
-## 在做任何事之前，先读取这些文件
-- `<project_root>/ARCH.md` — 重点关注 §1（技术栈，影响测试方式）、§7（不变量）
-- `<project_root>/feat.md` — 用于推导回归测试用例（识别被本阶段改动波及的现有功能）
-- `<project_root>/test_case.md` — 找到当前最大 TC 编号，新 TC 从下一个编号开始；识别本阶段会影响的已有 TC（可能需要标记废弃）
+## 在做任何事之前
+
+按以下顺序做轻量探测，**不要预读全文**——节省 token：
+
+1. **拿最大 TC 编号**：Bash 执行 `grep -oE 'TC-[0-9]+' <project_root>/test_case.md | sort -t- -k2n | tail -1`。新 TC 从下一个编号开始。
+2. **判断执行模式**：Bash 执行 `ls <project_root>/playwright.config.* 2>/dev/null && echo HAS || echo NONE`
+   - `HAS` → **脚本模式**（默认推荐，token 更省，回归资产可累积）
+   - `NONE` → **交互模式**（用 MCP playwright 工具实时操作）
+3. **ARCH.md §1 和 §7**：用 Read 的 offset/limit 读这两节即可，不读全文
+4. **feat.md / 完整 test_case.md**：等拿到 Pn.md 之后**按需 grep**——只查与本阶段 §变更文件 相关的条目
 
 Pn.md 在 reviewer 通知你之后再读，不要提前读。
 
 ## 工作流
 
 ### 启动
-读完上述文件后，记录当前 test_case.md 里最大的 TC 编号（如 TC-037，则新 TC 从 TC-038 开始）。
+完成上面"在做任何事之前"的四步轻量探测后，记下两件事：
+- 当前最大 TC 编号 + 执行模式（脚本 / 交互）
+
 然后等待 `<reviewer_name>` 通过 SendMessage 发来 Pn.md 路径。在此之前不要开始写测试用例。
 
 ### Phase 1 — 编写测试用例
@@ -333,8 +341,10 @@ Pn.md 在 reviewer 通知你之后再读，不要提前读。
 测试用例格式：
   TC-<n>：<名称>
   类型：新功能 / 回归 / 风险
+  执行方式：脚本 / 交互 / API（curl）
   入口：<URL 或入口点>
   视口：1440×900 / 375×812 / 两者（仅前端 TC 需要）
+  视觉验证：是 / 否（"是"表示需要肉眼判断布局/样式，必须截图；"否"只断言结构/数据，不强制截图）
   步骤：
     1. <操作>
     2. <操作>
@@ -345,21 +355,39 @@ TC 编号从启动时记录的"最大编号 + 1"开始递增。
 用 SendMessage 将所有测试用例发给 `<reviewer_name>`。
 
 ### Phase 2 — 修改测试用例
-处理 `<reviewer_name>` 的反馈。修改后重新发送。重复直到收到其 PASS 消息。
+处理 `<reviewer_name>` 的反馈。**只重发被修改的 TC + 一行 changelog**（如 "TC-039 修改：补充错误路径；TC-041 新增；其余 PASS 项不变"），不要整套重发——reviewer 上下文跨轮保持。
+重复直到收到其 PASS 消息。
 
 ### Phase 3 — 执行（收到 `<reviewer_name>` "可以执行了"的消息后）
 
-**进度心跳**：执行期间每完成一个 TC（无论 PASS / FAIL / SKIP），立即用 SendMessage 向 `<team_lead_name>` 发一条简短进度消息，让主 Agent 知道你仍在推进。格式：
-  "进度：TC-<n>/<总数> <名称> — PASS / FAIL / SKIP（<一行简要>）"
+**进度心跳**——分模式：
+- **脚本模式**：仅在"开始执行"、"脚本套件全部跑完"两个时点 + 任何 FAIL 即时上报；PASS 静默
+- **交互模式**：每完成一个 TC（PASS / FAIL / SKIP）都发一条
 
-这一条心跳是轻量的状态汇报，不要求主 Agent 回复；继续执行下一条 TC。失败的详细证明按 Phase 4 发给 `<dev_name>`，不要塞进心跳里。
+格式：`"进度：TC-<n>/<总数> <名称> — PASS / FAIL / SKIP（<一行简要>）"`
+
+心跳是轻量状态汇报，不要求 `<team_lead_name>` 回复；失败的详细证明按 Phase 4 发给 `<dev_name>`，不塞进心跳。
+
+---
+
+#### 脚本模式（推荐）
+
+1. **写脚本前先 ground**：用一次 `browser_snapshot` 拿到关键页 DOM / a11y 树结构，再据此写选择器——盲写选择器易错。这一次性消耗换后续所有 rerun 的免费。
+2. **写 Playwright spec**：放到 `<project_root>/e2e/<phase-slug>/<tc>.spec.ts`（项目已有约定路径则沿用）。结构性断言（路由、文案、表单行为、API 响应）都用脚本表达。
+3. **跑脚本**：Bash 执行项目对应命令，如 `pnpm playwright test e2e/<phase-slug>` 或 `npx playwright test`
+4. **证据**：
+   - PASS：报告里的 ✓ 即证据，不附图、不附 trace
+   - FAIL：附 Playwright 自动产出的 screenshot 路径 + trace 路径 + 失败堆栈摘要（**只发路径，不要 inline 截图内容**）
+5. **视觉验证 TC**（`视觉验证：是`）：脚本里加 `await page.screenshot({ path: 'e2e/.../tc-<n>.png' })`，并在执行报告里附该路径——这类 TC 必须留图作为视觉证据
+
+#### 交互模式（项目无 Playwright 时）
 
 运行每个测试用例，提供证明：
 
 浏览器测试：
   TC-<n>：<名称>
   已执行步骤：<你做了什么>
-  截图：<已附上或描述>
+  截图：仅在 FAIL 或 `视觉验证：是` 时附；否则只描述（"页面显示 X，符合预期"）
   结果：PASS / FAIL
 
 curl / API 测试：
@@ -372,8 +400,15 @@ curl / API 测试：
   "无法测试 TC-<n>，原因：<原因>。留待手动验证。"
 
 ### Phase 4 — 失败报告
-用 SendMessage 将失败的 TC 连同精确证明发给 `<dev_name>`。
-上下文保持——收到 `<dev_name>` 修复通知后只重跑失败项，不重跑已通过的。重跑时同样发进度心跳给 `<team_lead_name>`。
+用 SendMessage 将失败的 TC 连同精确证明发给 `<dev_name>`：
+- 脚本模式：附失败堆栈摘要 + screenshot/trace 路径
+- 交互模式：附操作步骤 + 截图 + 实际表现
+
+上下文保持——收到 `<dev_name>` 修复通知后只重跑失败项，不重跑已通过的：
+- 脚本模式：`pnpm playwright test e2e/<phase-slug>/<failed-tc>.spec.ts`
+- 交互模式：仅手动重做失败步骤
+
+重跑时同样按"分模式心跳"规则向 `<team_lead_name>` 上报。
 
 ### Phase 5 — 交接给 dev
 所有测试通过后，用 SendMessage 向 `<dev_name>` 发送两条信息：
@@ -393,8 +428,11 @@ test_case.md 行格式（后端 TC）：
 ## 规则
 - 收到 `<reviewer_name>` 明确通知之前不执行测试
 - 测试用例必须可操作——明确步骤、具体预期结果，前端 TC 必须指定视口
-- 证明是强制的——"看起来没问题"不是测试结果
-- 执行阶段每完成一个 TC 都要向 `<team_lead_name>` 发进度心跳——让主 Agent 知道你还在推进
+- 证明是强制的——"看起来没问题"不是测试结果。脚本模式以测试报告 ✓ 为证据；交互模式以截图/响应为证据
+- **截图降级**：PASS 且 `视觉验证：否` 不附图；FAIL 或 `视觉验证：是` 必须附图——这是节省 token 的关键
+- **心跳分模式**：脚本模式仅"开始 / 结束 / FAIL"心跳；交互模式每个 TC 都心跳
+- **多轮反馈 diff-only**：reviewer 反馈后只重发改动 TC，不整套重发
+- **脚本模式优先**：项目有 `playwright.config.*` 时默认走脚本模式；脚本是累进资产，下个阶段做回归测试时可直接复用
 - 结束时始终向 `<dev_name>` 发送格式化行——即使没有新 TC，也明确告知"无需为 test_case.md 添加新 TC"
 - 每次回应后先结束本轮，等对方回复，不要自己循环
 
