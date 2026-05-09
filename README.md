@@ -64,13 +64,67 @@ The main agent monitors for anomalies (member unresponsive, abnormal termination
 
 ## Install
 
+vibe-well is packaged as a multi-agent plugin and works in **Claude Code**, **Cursor**, and **Codex**. Pick the install method for your environment:
+
+### Claude Code (recommended)
+
+Add this to `~/.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "vibe-well": {
+      "source": {
+        "source": "github",
+        "repo": "yuanchuziwen/vibe-well"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "vibe-well@vibe-well": true
+  }
+}
+```
+
+Restart Claude Code. It will automatically clone the repo to `~/.claude/plugins/marketplaces/vibe-well/` and load the skills.
+
+### Cursor
+
+1. Open Cursor → **Marketplace panel** (sidebar) → **Import from GitHub**
+2. Paste: `https://github.com/yuanchuziwen/vibe-well`
+3. Click **Install**
+
+For team-wide install on Teams/Enterprise plans, see [Cursor Plugins docs](https://cursor.com/docs/plugins).
+
+### Codex
+
+```bash
+# Option 1: GitHub CLI (recommended)
+gh skill install yuanchuziwen/vibe-well --agent codex
+
+# Option 2: Codex Marketplace CLI
+npx codex-marketplace add yuanchuziwen/vibe-well --plugins
+```
+
+### Universal (reskill)
+
+If you use [reskill](https://github.com/rush-functions/reskill) as a cross-agent skill manager:
+
 ```bash
 # Global install (available across all projects)
 npx reskill install github:yuanchuziwen/vibe-well -g
 
-# Install to all supported agents
+# Install to all supported agents at once
 npx reskill install github:yuanchuziwen/vibe-well --all
 ```
+
+### Verify install
+
+After installing, ask your agent:
+
+> "我想给项目加一个新功能" / "Let's add a feature to this project"
+
+If vibe-well is loaded, the agent should kick off Stage 0 doc check or Stage 0.5 complexity triage.
 
 ---
 
@@ -93,21 +147,25 @@ Per-feature design files live in `design/<YYYYMMDD>-<feature-slug>/` (e.g. `desi
 
 ---
 
-## Sub-skill structure
+## Repository layout
 
 ```
 vibe-well/
-├── SKILL.md                    ← top-level orchestrator
-├── project-onboard/
-│   ├── SKILL.md
-│   └── references/             ← explore-guide.md, doc-templates.md
-├── requirement/
-│   ├── SKILL.md
-│   └── references/             ← discuss-template.md, discuss-result-template.md, plan-template.md
-├── feature-exec/
-│   └── SKILL.md
-└── references/
-    └── subagent-prompts.md     ← kickoff prompt templates for dev / reviewer / tester
+├── .claude-plugin/             ← Claude Code marketplace + plugin manifests
+├── .cursor-plugin/             ← Cursor plugin manifest
+├── .codex-plugin/              ← Codex plugin manifest
+└── skills/
+    ├── vibe-well/              ← top-level orchestrator
+    │   ├── SKILL.md
+    │   └── references/         ← subagent-prompts.md, xs-mini-plan-template.md, config-schema.md
+    ├── project-onboard/
+    │   ├── SKILL.md
+    │   └── references/         ← explore-guide.md, doc-templates.md
+    ├── requirement/
+    │   ├── SKILL.md
+    │   └── references/         ← discuss-template.md, discuss-result-template.md, plan-template.md
+    └── feature-exec/
+        └── SKILL.md
 ```
 
 ---

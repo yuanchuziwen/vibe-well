@@ -4,13 +4,67 @@
 
 ## 安装
 
+vibe-well 已封装为多 Agent 通用 plugin，**Claude Code / Cursor / Codex** 都能直接装。按你的环境选一种：
+
+### Claude Code（推荐）
+
+把以下内容合并到 `~/.claude/settings.json`：
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "vibe-well": {
+      "source": {
+        "source": "github",
+        "repo": "yuanchuziwen/vibe-well"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "vibe-well@vibe-well": true
+  }
+}
+```
+
+重启 Claude Code。它会自动 clone 仓库到 `~/.claude/plugins/marketplaces/vibe-well/`，加载 skills。
+
+### Cursor
+
+1. 打开 Cursor → 侧栏 **Marketplace** → **Import from GitHub**
+2. 粘贴：`https://github.com/yuanchuziwen/vibe-well`
+3. 点 **Install**
+
+Teams / Enterprise 团队级安装见 [Cursor Plugins 文档](https://cursor.com/docs/plugins)。
+
+### Codex
+
+```bash
+# 方式 1：GitHub CLI（推荐）
+gh skill install yuanchuziwen/vibe-well --agent codex
+
+# 方式 2：Codex Marketplace CLI
+npx codex-marketplace add yuanchuziwen/vibe-well --plugins
+```
+
+### 通用（reskill）
+
+如果你用 [reskill](https://github.com/rush-functions/reskill) 这种跨 Agent 的 skill 管理器：
+
 ```bash
 # 全局安装（所有项目可用）
 npx reskill install github:yuanchuziwen/vibe-well -g
 
-# 项目本地安装
-npx reskill install github:yuanchuziwen/vibe-well
+# 一次装到所有支持的 Agent
+npx reskill install github:yuanchuziwen/vibe-well --all
 ```
+
+### 验证安装
+
+装完后跟 Agent 说：
+
+> "我想给项目加一个新功能"
+
+如果 vibe-well 加载成功，Agent 会自动进入 Stage 0 文档检查或 Stage 0.5 复杂度快筛。
 
 ---
 
@@ -22,14 +76,22 @@ npx reskill install github:yuanchuziwen/vibe-well
 ## 整体结构
 
 ```
-vibe-well/                      ← 顶层编排 skill
-├── project-onboard/            ← 代码库探索 + 文档生成
-│   └── references/             ← explore-guide.md、doc-templates.md
-├── requirement/                ← 需求讨论 + 产出三份文档
-│   └── references/             ← discuss-template.md、discuss-result-template.md、plan-template.md
-├── feature-exec/               ← 单个 phase 的完整执行
-└── references/
-    └── subagent-prompts.md     ← dev / reviewer / tester 的 kickoff prompt 模板
+vibe-well/
+├── .claude-plugin/             ← Claude Code marketplace + plugin manifest
+├── .cursor-plugin/             ← Cursor plugin manifest
+├── .codex-plugin/              ← Codex plugin manifest
+└── skills/
+    ├── vibe-well/              ← 顶层编排 skill
+    │   ├── SKILL.md
+    │   └── references/         ← subagent-prompts.md、xs-mini-plan-template.md、config-schema.md
+    ├── project-onboard/        ← 代码库探索 + 文档生成
+    │   ├── SKILL.md
+    │   └── references/         ← explore-guide.md、doc-templates.md
+    ├── requirement/            ← 需求讨论 + 产出三份文档
+    │   ├── SKILL.md
+    │   └── references/         ← discuss-template.md、discuss-result-template.md、plan-template.md
+    └── feature-exec/           ← 单个 phase 的完整执行
+        └── SKILL.md
 ```
 
 ---

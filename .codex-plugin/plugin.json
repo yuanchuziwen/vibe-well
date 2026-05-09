@@ -1,0 +1,39 @@
+{
+  "name": "vibe-well",
+  "version": "2.3.0",
+  "description": "端到端功能开发流水线：需求讨论 → 分阶段执行 → 交付有文档的代码。",
+  "author": {
+    "name": "yuanchuziwen",
+    "url": "https://github.com/yuanchuziwen"
+  },
+  "homepage": "https://github.com/yuanchuziwen/vibe-well",
+  "repository": "https://github.com/yuanchuziwen/vibe-well",
+  "license": "MIT",
+  "keywords": [
+    "feature-development",
+    "spec-driven",
+    "tdd",
+    "workflow",
+    "skills",
+    "chinese"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "vibe-well",
+    "shortDescription": "端到端功能开发流水线：需求讨论 → 分阶段执行 → 交付有文档的代码",
+    "longDescription": "vibe-well 把复杂功能开发拆成 5 个 Stage 和 4 份文档（discuss / discuss-result / plan / Pn）。Stage 0.5 复杂度快筛把 XS 级小变更走快速通道；M/L/XL 级变更通过 dev / reviewer / tester 三角色协作（Mode C 需要 TeamCreate）或主 Agent 自身轮换角色（Mode A）执行；每个 Pn 按 verification_strategy 自适应选择 TDD / 视觉验证 / 回归验证。",
+    "developerName": "yuanchuziwen",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "我想给项目加一个新功能",
+      "我们来构建 X",
+      "明确这个需求"
+    ],
+    "websiteURL": "https://github.com/yuanchuziwen/vibe-well"
+  }
+}
