@@ -94,24 +94,27 @@ ls -dt design/*/ 2>/dev/null | head -1 | xargs -I{} ls {}discuss-result.md {}pla
 如果顶层 SKILL 已经检测过，跳过。否则：
 
 ```
-检查主 Agent 工具列表里是否有 TeamCreate：
-- 有 → 支持 Mode C
-- 无（Cursor、旧版 Claude、未开启实验功能）→ 仅支持 Mode A
+1) 检查 TeamCreate 是否存在 → 决定 Mode C 是否可用
+2) 检查 Task / generalPurpose subagent 调用能力 → 决定 Mode B 是否可用
+   (Cursor / Claude Code 默认都有 Task 工具)
+3) 都没有 → 仅 Mode A
 ```
 
 如果环境不支持 Mode C 但阶段规模为 M/L/XL，告知用户：
-> "当前环境不支持 Agent 团队（TeamCreate 不可用）。此阶段规模为 \<size\>，建议：
-> - 拆分为更小子任务后用 Mode A 逐个执行；或
-> - 切换到支持实验功能的 Claude Code 环境后再执行。"
+> "当前环境不支持 Agent 团队（TeamCreate 不可用）。建议：
+> - **Mode B**（推荐）：单 Agent 三角色，用一次性 subagent 替代团队——M 级直接可用，L/XL 牺牲并行性后也可用
+> - **Mode A**：拆分为更小子任务后逐个执行
+> - 或切换到支持 TeamCreate 的 Claude Code 环境继续 Mode C"
 
 ---
 
 ## 模式选择
 
-| 阶段规模 | 模式 |
-|---|---|
-| S — 单模块、无新 schema、< 1 天 | **A** — 主 Agent 直接执行 |
-| M / L / XL | **C** — Agent 团队（需要 TeamCreate 可用）|
+| 阶段规模 | 首选 | 备选（首选不可用时） |
+|---|---|---|
+| S / XS — 单模块、无新 schema、< 1 天 | **A** — 主 Agent 直接执行 | **A** |
+| M — 跨 2~3 模块、有可测逻辑 | **B** — 单 Agent 三角色 | **A**（拆子任务串行）|
+| L / XL — 大规模、需要并行轨道 | **C** — Agent 团队 | **B** → **A** |
 
 在开始前说明模式和阶段名称。
 
@@ -147,6 +150,139 @@ ls -dt design/*/ 2>/dev/null | head -1 | xargs -I{} ls {}discuss-result.md {}pla
 - 仍按 `verification_strategy` 选择步骤 3/4 路径
 
 交付物：commit SHA + 验证证据（按策略类型输出对应证据）。
+
+---
+
+## Mode B — 单 Agent 三角色（B-orchestrate）
+
+主 Agent 是 orchestrator/team-lead；每轮用 `Task` 工具 spawn 一次性 subagent 扮演 dev / reviewer / tester；角色独立性靠 subagent 上下文隔离实现，无需 TeamCreate。
+
+### 输入与输出
+- 输入：与 Mode C 相同（`Pn.md` 由 dev subagent 在第一轮写）
+- 输出：与 Mode C 相同（commit SHA + 验证证据 + 文档更新）
+
+### 角色卡
+所有 dev / reviewer / tester 的行为约定写在 `../vibe-well/references/role-cards/{dev,reviewer,tester}.md`。
+
+**spawn 时只引用角色卡路径，不要把内容复制进 prompt**——节省 token，也避免不同轮次角色定义漂移。
+
+### 跨轮上下文持久化目录
+
+第一次进入 Mode B 时创建：
+```bash
+mkdir -p <design_root>/.reviews
+```
+
+每轮 reviewer 的输出落到 `<design_root>/.reviews/<task>-round<n>.md`：
+- `<task>` 取值：`pn`、`tdd-red`、`tdd-green`、`code`、`tc`
+- `<n>` 从 1 开始
+
+下一轮 reviewer subagent 启动时，主 Agent 在 prompt 头加一行：
+> "前 N 轮反馈在 `<design_root>/.reviews/<task>-round1.md` 至 `round<n-1>.md`，先读取再审本轮。"
+
+### 内部流程
+
+```
+主 Agent: 初始化 .reviews/ + 读上下文
+    │
+    ▼
+[Round 1] Task(dev, 任务=write-pn)
+    → dev subagent 写 <design_root>/Pn.md
+    → 返回 "DONE，产出 Pn.md"
+    │
+    ▼
+[Round 1] Task(reviewer, 任务=review-pn)
+    → reviewer 读 Pn.md + ARCH + discuss-result
+    → 返回 "PASS" 或 "ISSUES（清单）"
+    → 主 Agent 把返回内容存到 .reviews/pn-round1.md
+    │
+    ▼ ISSUES → 重复 Task(dev, 修订 Pn) → Task(reviewer, round 2，传入 round1 反馈)
+    ▼ 直至 PASS
+    │
+    ▼ Pn.md 批准——并行启动两条轨道（用 batch Task 调用同时 spawn）
+    │
+    ├── Dev 轨道:
+    │     [3a] Task(dev, 任务=tdd-red) → 失败单测
+    │            → Task(reviewer, 任务=review-tdd-red, 传入 .reviews/tdd-red-round*)
+    │            → 多轮直至 PASS
+    │     [3b] Task(dev, 任务=tdd-green) → 实现 + 通过输出
+    │            → Task(reviewer, 任务=review-code, 传入 .reviews/code-round*)
+    │            → 多轮直至 PASS
+    │
+    └── Tester 轨道:
+          Task(tester, 任务=write-tc) → TC 列表
+            → Task(reviewer, 任务=review-tc, 传入 .reviews/tc-round*)
+            → 多轮直至 PASS
+    │
+    ▼ 两轨道均 PASS
+    │
+[Execute] Task(tester, 任务=execute-tc)
+    → 返回 PASS/FAIL/SKIP 报告
+    │
+    ▼ 有 FAIL → Task(dev, 任务=fix-failure, 传入 tester 报告)
+              → Task(tester, 任务=rerun-failures)
+              → 循环（3 次仍失败 → 主 Agent 上报用户）
+    ▼ 全部 PASS
+    │
+[Wrap-up] 主 Agent 自己更新 ARCH/feat/test_case + commit
+    → 或 spawn Task(dev, 任务=final-commit) 完成（推荐：让 dev 做 commit 保持纪律）
+    │
+    ▼ 主 Agent 输出交付报告 + 清理 .reviews/ 是否保留由用户决定
+```
+
+### Task subagent 启动模板
+
+每次 spawn 用以下格式（替换 `<…>` 占位符）：
+
+```
+你扮演 <role>（dev / reviewer / tester），任务标签：<task-label>
+角色卡：阅读 <project_root>/.../role-cards/<role>.md（角色卡是你的行为指南，必须严格遵守）
+
+本次执行上下文:
+  project_root: <abs path>
+  design_root:  <abs path>
+  phase:        P<n> · <name> (size=<S|M|L|XL>)
+  verification_strategy: <unit-tdd | curl-acceptance | visual-snapshot | visual-diff | manual | regression-suite>
+
+# 仅 reviewer 任务：附上历史反馈
+前几轮反馈历史在 <design_root>/.reviews/<task>-round*.md
+（如果是 round 1，跳过这条）
+
+# 任务具体说明
+<本轮任务描述，如 "为验收清单 1~3 写失败单测，运行 pnpm test 确认全失败">
+
+# 输出要求
+按角色卡末尾的"输出格式"严格返回。
+```
+
+### 主 Agent 在 Mode B 期间的职责
+
+- **不写代码**——只 orchestrate 和转交
+- **解析 subagent 输出**：把每个 subagent 的"产出文件"信息记录到内存，下次 spawn 时引用其路径
+- **写 .reviews/ 历史**：reviewer 输出收到后立刻 append 到 `<design_root>/.reviews/<task>-round<n>.md`
+- **轮次管理**：每个任务的 `<n>` 独立计数（pn 的 round 数和 tdd-red 的 round 数互不影响）
+- **失败兜底**：subagent 输出格式错误（缺字段、不按角色卡格式）→ 主 Agent 重试一次；连续 2 次失败 → 上报用户
+- **范围控制**：dev 返回 `NEEDS-SCOPE-EXPANSION` 时，主 Agent 转给用户决策，**不要自行授权**
+
+### 并行的实现
+
+Phase 3a/3b 中 dev 轨道和 tester 轨道可并行——用单个 message 中包含两个 Task tool call 实现。例如：
+
+```
+[在同一回合中]
+Task(subagent_type="generalPurpose", description="dev 写失败单测", prompt=...)
+Task(subagent_type="generalPurpose", description="tester 写 TC", prompt=...)
+```
+
+两者结果会被批量返回。**reviewer 不能并行**：每次 review 必须读上一轮历史，需要串行。
+
+### 关键约束（Mode B 专属）
+
+- **角色卡是契约**：subagent 偏离角色卡（如 reviewer 自己改代码）→ 主 Agent 拒绝输出，重 spawn 一次
+- **reviewer 跨轮历史是必读**：第 N 轮 reviewer prompt 必须显式引用 `.reviews/<task>-round<1..n-1>.md`
+- **subagent 不感知"团队"**：不要在 prompt 里说"另一个成员"——它们是一次性的，只知道自己的任务
+- **commit 是主 Agent 或 final-commit dev 任务的职责**——**不要**让普通任务的 dev subagent 自己 commit（会导致提交散乱）
+- **`<design_root>/.reviews/` 的处理**：阶段交付后是否保留由用户决定（默认保留以便审计；用户嫌占空间可手动删）
 
 ---
 
@@ -411,5 +547,6 @@ test_case.md 更新：TC-<n> ~ TC-<m> 新增，TC-<x> 废弃 / 无变化
 
 ## 参考文件
 
-- `../vibe-well/references/subagent-prompts.md` — dev、reviewer、tester 的启动提示模板
-- `../requirement/references/plan-template.md` — plan.md 格式（Pn.md 也参考此模板的"Phase Details"部分）
+- `../vibe-well/references/subagent-prompts.md` — dev、reviewer、tester 的启动提示模板（Mode C 用）
+- `../vibe-well/references/role-cards/{dev,reviewer,tester}.md` — 角色卡（Mode B 用，一次性 subagent 启动时引用）
+- `../requirement/references/plan-template.md` — plan.md 格式（Pn.md 也参考此模板的"Phase Details"部分；末尾「Verification Strategy 选择指南」是各模式共用）
