@@ -21,6 +21,23 @@ description: 当用户想要"开发新功能"、"开始一个功能"、"端到�
 
 ---
 
+## 启动前：检查恢复点
+
+进入 Stage 0 前，**先看是否有中断的阶段需要恢复**：
+
+```bash
+ls design/*/.vibe-well/state.json 2>/dev/null
+```
+
+- **找到 state.json** → 列出每个阶段当前 `stage` 字段，问用户："发现 N 个未完成阶段——\<P1: phase3b-tdd-green\>、\<P2: tester-execute\>……要继续哪个？还是开新的需求？"
+- **未找到 / 用户选择新需求** → 跳过本节，按正常 Stage 0 流程
+
+恢复执行时**直接跳到 Stage 4，调用 `feature-exec`**，传入 `resume: true` 标记和阶段编号。`feature-exec/SKILL.md` 的「恢复协议」章节会接管。
+
+详见 `../feature-exec/SKILL.md` § 恢复协议。
+
+---
+
 ## 启动前：读取用户偏好
 
 进入 Stage 0 前，**先读取用户级偏好**：
@@ -324,6 +341,10 @@ git worktree remove <worktree-path>
 - ❌ XS 通道里硬撑——发现复杂度超标却继续，最终绕过 Stage 1 的需求讨论
 - ❌ 把 `manual` 当作"懒得写测试"的逃生口——`verification_strategy` 必须按变更类型选，reviewer 应在审 Pn.md 时质疑滥用
 - ❌ 自动写入 `~/.vibe-well/config.yaml`——只有用户明确说"以后都这样"时才回写
+- ❌ Mode B 中主 Agent 自己写代码——它是 orchestrator，所有代码改动应通过 dev subagent 完成
+- ❌ Mode B 中跳过 `.reviews/` 历史——下一轮 reviewer 启动时不传历史，会反复指出同一问题
+- ❌ 中断恢复时跳过 state.json 直接重做——浪费已完成的 review 轮次和测试证据
+- ❌ 跨阶段复用 `.vibe-well/state.json`——每阶段必须独立，否则 checkpoint 会错乱
 
 ---
 

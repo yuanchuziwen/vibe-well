@@ -545,6 +545,112 @@ test_case.md 更新：TC-<n> ~ TC-<m> 新增，TC-<x> 废弃 / 无变化
 
 ---
 
+## 恢复协议
+
+任何 Mode（A / B / C / XS）执行过程中如果中断（Claude 重启、用户 Ctrl+C、subagent 失踪、context 爆炸），下次回到这个阶段时按本节恢复。
+
+### state.json 状态机
+
+每个阶段的执行状态持久化到 `<design_root>/.vibe-well/state.json`：
+
+```json
+{
+  "schema_version": 1,
+  "phase":  { "num": 1, "name": "auth-layer", "size": "M" },
+  "mode":   "B",
+  "stage":  "phase3a-tdd-red",
+  "round":  { "pn": 2, "tdd-red": 1, "code": 0, "tc": 1 },
+  "checkpoints": {
+    "pn_md_approved":     "2026-05-09T03:50:00Z",
+    "tdd_red_approved":   null,
+    "tdd_green_approved": null,
+    "test_cases_ready":   null,
+    "tests_passed":       null,
+    "committed":          null,
+    "delivered":          null
+  },
+  "last_message_at":     "2026-05-09T04:12:00Z",
+  "last_subagent_task":  "tdd-red round 1",
+  "team_name":           null,
+  "context_ref":         ".vibe-well/exec-context.json"
+}
+```
+
+**stage 枚举值**（9 个）：
+
+```text
+init  →  write-pn  →  review-pn  →  phase3a-tdd-red  →  phase3b-tdd-green
+                          ↓ (并行 tester 轨道)
+                          tester-write-tc  →  tester-review-tc
+                                                ↓ (两轨道汇合)
+                                                tester-execute  →  fixing  →  committing  →  delivered
+```
+
+XS 模式只用其中：`init → phase3b-tdd-green`（按 verification_strategy 决定是否走 3a） `→ committing → delivered`。
+
+### 写入时机
+
+| 事件 | 主 Agent 应更新 |
+|---|---|
+| 阶段启动 | 创建 state.json，stage=`init` |
+| Pn.md 写完 | stage=`review-pn`, round.pn 自增 |
+| Pn.md PASS | checkpoints.pn_md_approved=now |
+| TDD Red PASS | checkpoints.tdd_red_approved=now |
+| TDD Green PASS | checkpoints.tdd_green_approved=now |
+| TC PASS | checkpoints.test_cases_ready=now |
+| 测试全 PASS | checkpoints.tests_passed=now |
+| commit 完成 | checkpoints.committed=now |
+| 交付报告输出 | checkpoints.delivered=now |
+| 任何 subagent 返回 | last_message_at=now, last_subagent_task=... |
+
+### 恢复入口
+
+用户回来后说"继续 P\<n\>"或"恢复"时：
+
+```bash
+ls <design_root>/.vibe-well/state.json 2>/dev/null
+```
+
+- **不存在** → 没有进行中的阶段，按正常流程重开
+- **存在** → 读取，按 `stage` 字段决定从哪步重启：
+
+| state.stage | 恢复动作 |
+|---|---|
+| `init` | 当作首次启动 |
+| `write-pn` 或 `review-pn` | 重新 Task(dev / reviewer)，传入 `<design_root>/Pn.md`（如已存在）和 `.reviews/pn-round*` 历史（Mode B）|
+| `phase3a-tdd-red` | 检查测试文件是否已存在；存在则跳到 review，否则重 spawn dev |
+| `phase3b-tdd-green` | 同上 |
+| `tester-write-tc` / `tester-review-tc` | 重 spawn tester / reviewer，传入历史 |
+| `tester-execute` | 重 spawn tester 执行；保留已 PASS 的 TC，只跑剩余 |
+| `fixing` | 把上次 tester 报来的 FAIL 详情重新交给 dev |
+| `committing` | 检查 git status；如已 commit 但 state 没更新，标记 committed 跳到 delivered |
+| `delivered` | 已完成，提示用户该阶段已交付 |
+
+### 恢复时主 Agent 的强制动作
+
+1. **先报告状态**：把 state.json 内容用一行摘要展示给用户（"P1 进度：Pn.md PASS（2 轮），TDD Red 已完成，准备进入 Green"）
+2. **询问是否继续**：用户可能想看一下当前产出再决定
+3. **同步必要文件**：如果中断时 dev/tester 的产出已落到磁盘但未通过 review，先把这些文件路径列给用户看，再决定是否丢弃重写
+4. **从 last_message_at 推断异常**：如果与现在时差 > 24 小时，提醒用户"这个阶段中断很久了，磁盘上的代码可能已被你手动改动，请决定从哪一步重启"
+
+### Mode 特定的恢复细节
+
+- **Mode A**：state 主要靠主 Agent 自己读，没有外部成员
+- **Mode B**：恢复时所有 `.reviews/<task>-round*.md` 必须保留——它们是 reviewer 跨轮上下文的唯一载体
+- **Mode C**：成员 ID（team_name）在 state.json，但成员上下文在 Claude Code 团队系统里。如果团队已被销毁（典型重启场景），**必须重 spawn 整个团队**，并在新成员的启动 prompt 里加："恢复执行——当前 stage=\<X\>，已通过：\<checkpoints\>。请先读 state.json 决定从哪步开始"
+
+### 清理
+
+阶段交付（`delivered`）后：
+
+- `state.json` 默认保留——便于审计和后续 regression-test 引用
+- `.reviews/` 目录默认保留（Mode B）
+- 用户可手动 `rm -rf <design_root>/.vibe-well/` 清理
+
+下个阶段启动时**新建独立的** `state.json`，不复用上一阶段的。
+
+---
+
 ## 参考文件
 
 - `../vibe-well/references/subagent-prompts.md` — dev、reviewer、tester 的启动提示模板（Mode C 用）
