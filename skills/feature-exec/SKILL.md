@@ -21,7 +21,7 @@ description: 当用户想要"实现某个阶段"、"开始写代码"、"执行 P
 | 写 state.json | ✓ | ✓ | ✓ |
 | commit | ✓ | spawn `final-commit` dev subagent（推荐）或自己写 | dev 成员负责 |
 | 写交付报告 | ✓ | ✓ | 收到 dev 报告后转述 |
-| 监控异常 / 响应上报 | — | subagent 输出格式异常时重试或上报用户 | 成员失踪/循环/上下文丢失时介入（详见 § Mode C 监控）|
+| 监控异常 / 响应上报 | — | subagent 输出格式异常时重试或上报用户 | 成员失踪/循环/上下文丢失时介入（详见 `references/mode-c-deep.md`）|
 | 团队清理 | — | 可选清理 `.reviews/` | TeamDelete |
 
 **通用准则**：
@@ -207,7 +207,7 @@ mkdir -p <design_root>/.reviews
 ```
 
 每轮 reviewer 的输出落到 `<design_root>/.reviews/<task>-round<n>.md`：
-- `<task>` 取值：`pn`、`tdd-red`、`tdd-green`、`code`、`tc`
+- `<task>` 取值：`pn`、`tdd-red`、`code`、`tc`（`tdd-green` 阶段的 reviewer 任务叫 `review-code`，历史文件统一归到 `code-round*.md`）
 - `<n>` 从 1 开始
 
 下一轮 reviewer subagent 启动时，主 Agent 在 prompt 头加一行：

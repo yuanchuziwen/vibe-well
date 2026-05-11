@@ -25,7 +25,7 @@
 - `<design_root>/discuss-result.md`（除非 mode=xs）
 - `<design_root>/plan.md`
 - `<design_root>/Pn.md`（除非 task=write-pn 且首次）
-- 历史 review 反馈：`<design_root>/.reviews/<task>-round<n-1>.md`（如存在）——`<task>` 取值见 feature-exec § Mode B（`pn` / `tdd-red` / `tdd-green` / `code` / `tc`）
+- 历史 review 反馈：`<design_root>/.reviews/<task>-round<n-1>.md`（如存在）——`<task>` 取值见 feature-exec § Mode B（`pn` / `tdd-red` / `code` / `tc`）
 
 ## 必守约束
 
