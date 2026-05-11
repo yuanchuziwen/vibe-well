@@ -6,11 +6,28 @@ description: 当用户想要"实现某个阶段"、"开始写代码"、"执行 P
 
 # Feature Exec
 
-将一个阶段从已批准的方案驱动到已提交的代码。主 Agent 的职责：
-- **启动**：根据 Mode 直接执行 / spawn Task subagent / 创建 TeamCreate 团队
-- **监控**：执行期间关注异常，必要时介入
-- **响应上报**：subagent 或团队成员遇到超出权限的决策时回复
-- **收尾**：commit + 写交付报告 + 清理（Mode C 还要 TeamDelete）
+将一个阶段从已批准的方案驱动到已提交的代码。
+
+## 主 Agent 职责一览（按 Mode 区分）
+
+| 职责 | Mode A | Mode B | Mode C |
+|---|---|---|---|
+| 读取上下文 | ✓ | ✓ | ✓ |
+| 写 Pn.md | ✓ | spawn dev subagent | spawn dev 成员 |
+| 写代码 / 测试 | ✓ | **❌（spawn dev）** | **❌（dev 成员负责）** |
+| 自审 / 审查 | ✓ | spawn reviewer subagent + 写 `.reviews/` 历史 | reviewer 成员负责（主 Agent 不参与） |
+| 跑测试 | ✓ | spawn tester subagent | tester 成员负责 |
+| 解析子 Agent / 成员输出 | — | ✓（每轮）| 仅异常时介入 |
+| 写 state.json | ✓ | ✓ | ✓ |
+| commit | ✓ | spawn `final-commit` dev subagent（推荐）或自己写 | dev 成员负责 |
+| 写交付报告 | ✓ | ✓ | 收到 dev 报告后转述 |
+| 监控异常 / 响应上报 | — | subagent 输出格式异常时重试或上报用户 | 成员失踪/循环/上下文丢失时介入（详见 § Mode C 监控）|
+| 团队清理 | — | 可选清理 `.reviews/` | TeamDelete |
+
+**通用准则**：
+- Mode B/C 中**主 Agent 不写产品代码**——所有代码改动通过子 Agent / 团队成员完成
+- 主 Agent 不替用户做范围决策——子 Agent / 成员上报范围扩大请求时转给用户
+- 主 Agent 不自行降级模式——执行卡住时上报用户，由用户决定是否切 Mode
 
 ## 章节导航
 
@@ -363,7 +380,28 @@ dev → 主 Agent（team-lead）：交付报告
 
 **Step 0 — 写 exec-context.json**（推荐，让所有成员只需读一行 JSON 即可获得全部上下文）
 
-在 spawn 任何成员之前，先在 `<design_root>/.vibe-well/exec-context.json` 写入本阶段的执行上下文：
+在 spawn 任何成员之前，先在 `<design_root>/.vibe-well/exec-context.json` 写入本阶段的执行上下文。**按 Mode 选示例**：
+
+**Mode B 简版**（只填必要字段，subagent 没有"名字"概念）：
+
+```json
+{
+  "schema_version": 1,
+  "phase":   { "num": 1, "name": "auth-layer", "size": "M" },
+  "mode":    "B",
+  "paths": {
+    "project_root": "/Users/me/proj",
+    "design_root":  "/Users/me/proj/design/20260509-user-auth"
+  },
+  "branch":   "feat/user-auth/p1-auth-layer",
+  "worktree": "/Users/me/proj-worktrees/p1-auth-layer",
+  "team":     { "lead": "team-lead" },
+  "verification_strategy": "unit-tdd",
+  "test_command":  "pnpm test"
+}
+```
+
+**Mode C 完整版**（成员是持久 Agent，需要 `team.members` 全部填）：
 
 ```json
 {
@@ -385,21 +423,24 @@ dev → 主 Agent（team-lead）：交付报告
 }
 ```
 
-**Schema 字段说明**：
+**Mode A 不需要 exec-context.json**——主 Agent 就是上下文本身。`mode=xs` 同 Mode A，不写。
 
-| 字段 | 含义 | 谁填 |
-|---|---|---|
-| `schema_version` | 1（首版本，未来兼容性预留）| 主 Agent |
-| `phase.{num,name,size}` | 来自 plan.md 阶段块 | 主 Agent |
-| `mode` | A / B / C / xs | Stage 3 决策结果 |
-| `paths.project_root` | worktree 或仓库根（见 Step 1）| Stage 2 决策结果 |
-| `paths.design_root` | 设计文件目录（始终原仓库）| Stage 1 输出 |
-| `branch` | 当前分支名 | Stage 2 决策结果 |
-| `worktree` | worktree 路径（不使用时为 null）| Stage 2 决策结果 |
-| `team.team_name` | Mode C 用；其它模式为 null | 本步骤决定 |
-| `team.members` | Mode C 用；Mode B 仅 `lead` 字段；Mode A null | 本步骤决定 |
-| `verification_strategy` | 来自 Pn.md（Mode C 由 dev 写入后由主 Agent 回填）| Pn.md 批准后回填 |
-| `test_command` | 项目脚本 / `defaults.test_command` | 启动检测 |
+**Schema 字段说明**（B = Mode B 必填，C = Mode C 必填，✓ = 两者都填，— = 不填）：
+
+| 字段 | 含义 | Mode B | Mode C |
+|---|---|---|---|
+| `schema_version` | 当前为 1 | ✓ | ✓ |
+| `phase.{num,name,size}` | 来自 plan.md 阶段块 | ✓ | ✓ |
+| `mode` | `"B"` 或 `"C"`（字符串） | ✓ | ✓ |
+| `paths.project_root` | worktree 或仓库根 | ✓ | ✓ |
+| `paths.design_root` | 设计文件目录（始终原仓库）| ✓ | ✓ |
+| `branch` | 当前分支名 | ✓ | ✓ |
+| `worktree` | worktree 路径（不使用时为 null） | ✓ | ✓ |
+| `team.team_name` | TeamCreate 时的团队名 | — | C |
+| `team.members.{dev,reviewer,tester}` | 持久成员名 | — | C |
+| `team.lead` | 主 Agent 名（默认 `team-lead`） | B | C |
+| `verification_strategy` | 来自 Pn.md，批准后回填 | ✓ | ✓ |
+| `test_command` | 项目脚本 / `defaults.test_command` | ✓ | ✓ |
 
 **为什么需要这个文件**：
 - 成员 prompt 不再需要 8 个手工替换的占位符——只需引用 context 文件路径
@@ -659,32 +700,46 @@ test_case.md 更新：TC-<n> ~ TC-<m> 新增，TC-<x> 废弃 / 无变化
 }
 ```
 
-**stage 枚举值**（11 个）：
+**stage 枚举值**（按"阶段流水"通用语义命名，各 Mode 共用）：
 
 ```text
-init  →  write-pn  →  review-pn  →  phase3a-tdd-red  →  phase3b-tdd-green
-                          ↓ (并行 tester 轨道)
-                          tester-write-tc  →  tester-review-tc
-                                                ↓ (两轨道汇合)
-                                                tester-execute  →  fixing  →  committing  →  delivered
+init  →  pn-draft  →  pn-review  →  test-prep  →  impl
+                          ↓ (Mode B/C 有并行 tester 轨道)
+                          tc-draft  →  tc-review
+                                          ↓ (两轨道汇合)
+                                          test-run  →  fixing  →  committing  →  delivered
 ```
 
-XS 模式只用其中：`init → phase3b-tdd-green`（按 verification_strategy 决定是否走 3a） `→ committing → delivered`。
+| stage | 含义（与 Mode 无关）| Mode A | Mode B | Mode C | XS |
+|---|---|---|---|---|---|
+| `init` | 阶段启动，读上下文 | ✓ | ✓ | ✓ | ✓ |
+| `pn-draft` | 写 / 修订 Pn.md | ✓ | dev subagent | dev 成员 | — |
+| `pn-review` | 审 Pn.md | 主 Agent 自审 | reviewer subagent | reviewer 成员 | — |
+| `test-prep` | 按 verification_strategy 准备测试基线（TDD Red 或 baseline） | ✓ | dev subagent | dev 成员 | ✓ |
+| `impl` | 写实现 + 验证 | ✓ | dev subagent | dev 成员 | ✓ |
+| `tc-draft` | 写功能测试用例 | — | tester subagent | tester 成员 | — |
+| `tc-review` | 审测试用例 | — | reviewer subagent | reviewer 成员 | — |
+| `test-run` | 执行 TC | 主 Agent | tester subagent | tester 成员 | 主 Agent |
+| `fixing` | 修失败 | ✓ | dev subagent | dev 成员 | ✓ |
+| `committing` | 更新 ARCH/feat/test_case + commit | ✓ | dev subagent 或主 Agent | dev 成员 | ✓ |
+| `delivered` | 输出交付报告 | ✓ | ✓ | ✓ | ✓ |
+
+**XS 简化路径**：`init → impl → committing → delivered`（按 verification_strategy 可能插入 `test-prep`；不走 `tc-*` 轨道）。
 
 ### 写入时机
 
 | 事件 | 主 Agent 应更新 |
 |---|---|
 | 阶段启动 | 创建 state.json，stage=`init` |
-| Pn.md 写完 | stage=`review-pn`, round.pn 自增 |
-| Pn.md PASS | checkpoints.pn_md_approved=now |
-| TDD Red PASS | checkpoints.tdd_red_approved=now |
-| TDD Green PASS | checkpoints.tdd_green_approved=now |
-| TC PASS | checkpoints.test_cases_ready=now |
-| 测试全 PASS | checkpoints.tests_passed=now |
+| Pn.md 写完 | stage=`pn-review`, round.pn 自增 |
+| Pn.md PASS | checkpoints.pn_md_approved=now，stage=`test-prep` |
+| 测试基线 PASS | checkpoints.tdd_red_approved=now，stage=`impl` |
+| 实现 PASS | checkpoints.tdd_green_approved=now |
+| TC PASS | checkpoints.test_cases_ready=now，stage=`test-run` |
+| 测试全 PASS | checkpoints.tests_passed=now，stage=`committing` |
 | commit 完成 | checkpoints.committed=now |
-| 交付报告输出 | checkpoints.delivered=now |
-| 任何 subagent 返回 | last_message_at=now, last_subagent_task=... |
+| 交付报告输出 | checkpoints.delivered=now，stage=`delivered` |
+| 任何 subagent 返回 / 子流程心跳 | last_message_at=now, last_subagent_task=... |
 
 ### 恢复入口
 
@@ -700,13 +755,13 @@ ls <design_root>/.vibe-well/state.json 2>/dev/null
 | state.stage | 恢复动作 |
 |---|---|
 | `init` | 当作首次启动 |
-| `write-pn` 或 `review-pn` | 重新 Task(dev / reviewer)，传入 `<design_root>/Pn.md`（如已存在）和 `.reviews/pn-round*` 历史（Mode B）|
-| `phase3a-tdd-red` | 检查测试文件是否已存在；存在则跳到 review，否则重 spawn dev |
-| `phase3b-tdd-green` | 同上 |
-| `tester-write-tc` / `tester-review-tc` | 重 spawn tester / reviewer，传入历史 |
-| `tester-execute` | 重 spawn tester 执行；保留已 PASS 的 TC，只跑剩余 |
-| `fixing` | 把上次 tester 报来的 FAIL 详情重新交给 dev |
-| `committing` | 检查 git status；如已 commit 但 state 没更新，标记 committed 跳到 delivered |
+| `pn-draft` / `pn-review` | 重新进入 Pn.md 编辑/审查：Mode A 主 Agent 自己继续；Mode B/C 重 spawn dev / reviewer，传入 `<design_root>/Pn.md`（如已存在）和 `.reviews/pn-round*` 历史（Mode B） |
+| `test-prep` | 检查测试文件是否已存在：存在则跳到 review/审实现，否则继续生成测试基线（Mode A 主 Agent 继续；Mode B/C 重 spawn dev） |
+| `impl` | 同上：检查实现是否已落盘，未落则继续写实现 |
+| `tc-draft` / `tc-review` | Mode B/C 重 spawn tester / reviewer，传入历史；Mode A 跳过（无 tester 轨道）|
+| `test-run` | 重新执行 TC；保留已 PASS 的，只跑剩余（用 last_subagent_task 或现有 TC 报告判断进度） |
+| `fixing` | 把上次失败详情重新交给执行者（Mode A 主 Agent / Mode B/C dev） |
+| `committing` | 检查 git status；如已 commit 但 state 没更新，标记 committed 后跳到 delivered |
 | `delivered` | 已完成，提示用户该阶段已交付 |
 
 ### 恢复时主 Agent 的强制动作

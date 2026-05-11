@@ -2,6 +2,8 @@
 
 feature-exec Mode C Agent 团队的启动提示。同时 spawn 三名成员。
 
+> **维护提示**：本文件和 `role-cards/{dev,reviewer,tester}.md`（Mode B 用）描述同一组角色的核心职责，差异仅在通信方式和上下文持久化方式。**修改职责定义时两份一起改**，避免行为漂移。
+
 ## 推荐：让成员先读 exec-context.json（v2.4+）
 
 启动前，team-lead 先在 `<design_root>/.vibe-well/exec-context.json` 写入本阶段上下文（schema 见 `feature-exec/SKILL.md` Mode C § Step 0）。然后**每个成员的启动提示头部加一行**：
