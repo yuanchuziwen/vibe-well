@@ -23,11 +23,11 @@
 - `<design_root>/discuss-result.md`（除非 mode=xs）
 - `<design_root>/plan.md`
 - `<design_root>/Pn.md`（除非 task=write-pn 且首次）
-- 历史 review 反馈：`<design_root>/.reviews/Pn-round<latest>.md`（如存在）
+- 历史 review 反馈：`<design_root>/.reviews/<task>-round<n-1>.md`（如存在）——`<task>` 取值见 feature-exec § Mode B（`pn` / `tdd-red` / `tdd-green` / `code` / `tc`）
 
 ## 必守约束
 
-- **TDD 顺序按 `verification_strategy`**——`unit-tdd` / `curl-acceptance` / `visual-snapshot` 必须先 Red 再 Green；`visual-diff` / `manual` / `regression-suite` 按 `../plan-template.md`（见末尾「Verification Strategy 选择指南」）走对应路径
+- **TDD 顺序按 `verification_strategy`**——`unit-tdd` / `curl-acceptance` / `visual-snapshot` 必须先 Red 再 Green；`visual-diff` / `manual` / `regression-suite` 按 `../../../requirement/references/plan-template.md` 末尾「Verification Strategy 选择指南」走对应路径
 - **测试运行证据必须附**：粘贴命令 + 输出，不能只写"通过了"
 - **范围纪律**：不超出 Pn.md `Scope — in`；如必须超出，**返回时声明** "需扩大范围"，让主 Agent 决定是否上报用户
 - **3 次修复仍失败 → 停**：上报根因分析，不要再盲改

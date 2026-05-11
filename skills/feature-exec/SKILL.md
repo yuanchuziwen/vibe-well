@@ -1,7 +1,7 @@
 ---
 name: feature-exec
 version: 1.1.0
-description: 当用户想要"实现某个阶段"、"开始写代码"、"执行 P1"、"运行第 N 阶段"、"实现已批准的方案"，或 feature-workflow 到达执行阶段时使用此技能。接收已批准的 plan.md，驱动完整周期。三种模式按规模选：S/XS=Mode A（主 Agent 直接），M=Mode B（Task subagent 三角色，无 TeamCreate 依赖），L/XL=Mode C（Agent 团队通过 TeamCreate + SendMessage 协调）。
+description: 当用户想要"实现某个阶段"、"开始写代码"、"执行 P1"、"运行第 N 阶段"、"实现已批准的方案"，或 feature-workflow 到达执行阶段时使用此技能。接收 plan.md 的 P<n>（完整流程）或 mini-plan.md（XS 快速通道），驱动完整周期。四种模式按规模选：XS=简化 Mode A（直接读 mini-plan 执行），S=Mode A（主 Agent 直接），M=Mode B（Task subagent 三角色，无 TeamCreate 依赖），L/XL=Mode C（Agent 团队通过 TeamCreate + SendMessage 协调）。
 ---
 
 # Feature Exec
@@ -659,7 +659,7 @@ test_case.md 更新：TC-<n> ~ TC-<m> 新增，TC-<x> 废弃 / 无变化
 }
 ```
 
-**stage 枚举值**（9 个）：
+**stage 枚举值**（11 个）：
 
 ```text
 init  →  write-pn  →  review-pn  →  phase3a-tdd-red  →  phase3b-tdd-green

@@ -19,7 +19,7 @@ defaults:
   # 可用占位符：{slug}（feature-slug）、{n}（阶段编号）、{phase_slug}（阶段名 slug）
 
   # Stage 3 模式选择
-  prefer_mode_b_over_c: false         # true—M 级优先用 Mode B 而非 Mode C（适合不支持 TeamCreate 的环境，留给后续 Mode B 落地后启用；当前未实现 Mode B 时此项无效）
+  prefer_mode_b_over_c: false         # true—M 级在 TeamCreate 可用时仍优先选 Mode B（典型场景：用户想避免 Mode C 的复杂团队管理开销，或者想用同样的流程跨 Claude/Cursor/Codex 切换）
 
   # Stage 4 测试命令兜底
   test_command: "pnpm test"           # 找不到测试框架时使用；空字符串则跳过
@@ -48,8 +48,8 @@ hooks:
 #     command: "scripts/post-commit.sh"   # 必填—相对 git 仓库根的命令；shell 执行
 #     mode:    warn                        # warn (默认) | block
 #     timeout_ms: 60000                    # 可选—默认 60s
-# Hook 进程的 stdin 自动注入 JSON 上下文：
-#   { phase: {...}, mode: "A|B|C|xs", commit_sha?, design_root, context_ref? }
+# Hook 进程的 stdin 自动注入 JSON 上下文（完整 schema 见下方「Hook 执行规则」）：
+#   { event, phase, mode, commit_sha, design_root, context_ref, timestamp }
 # Hook 退出码：0 视为成功；非 0：mode=warn 警告并继续，mode=block 阻断主流程
 
 # 项目覆盖（可选）
@@ -113,7 +113,7 @@ projects:
 **关键约束**：
 - Hook 失败**不应自动修复**——主 Agent 不要替用户判断"小问题"
 - Hook 命令**不接受参数列表**——所有参数走 stdin JSON，避免 shell 转义问题
-- `mode=block` 只用于真正不能跳过的检查（如 lint / format）；其它一律 warn
+- `mode=block` 只用于"出问题就不该继续"的关键检查（如部署门禁、安全/合规扫描、发布前 changelog 验证）；**lint / format / 单元测试** 这类应该用 git pre-commit hook 在 commit 之前拦截，**不要**放到 vibe-well 的 `on_phase_committed`（它在 commit 之后才跑，配 block 会误导用户）；其它情况一律用默认 warn
 
 ## 何时主动写入配置
 

@@ -176,5 +176,5 @@ summary:
 ## 参考文件
 
 - `../vibe-well/references/role-cards/tester.md` — 执行 TC 的脚本/交互模式规则（直接复用）
-- `../vibe-well/references/config-schema.md` — 用户偏好（如默认策略，可在 config.yaml 加 `regression.default_strategy`）
+- `../vibe-well/references/config-schema.md` — 用户偏好（默认策略字段：`defaults.regression_default_strategy`；是否在 Stage 5 提示跑回归：`defaults.prompt_regression_on_finish`）
 - `../project-onboard/references/doc-templates.md` § test_case.md — TC 表格 schema

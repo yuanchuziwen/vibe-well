@@ -134,24 +134,26 @@ Deferred: P4 (reason: [lower priority / can be added later without rework])
 
 ## Execution Notes
 
-**Per-phase lifecycle** (applies to every phase in Mode C):
+**Per-phase lifecycle**（三种 Mode 共享流程骨架，只在角色独立性上不同）：
 
 ```
-主 Agent 创建团队 + spawn dev / reviewer / tester
-  → dev 写 P<n>.md（本模板 Phase Details 部分）
-  → reviewer 审查 P<n>.md（多轮直至 PASS）
-  → Pn.md 批准后两条轨道并行：
-      - dev：写代码 + 单元测试 → reviewer 审查代码
-      - tester：写测试用例 → reviewer 审查测试用例
-  → 两条轨道都 PASS
-  → tester 执行测试 → dev 修复失败 → tester 重跑
-  → dev 更新 ARCH.md + feat.md + test_case.md + git commit
-  → dev 向主 Agent 发交付报告 → 主 Agent shutdown 团队
+读上下文 + 写 Pn.md → 审查 Pn.md（多轮 PASS）
+  ↓ Pn.md 批准——两条轨道并行
+  ├── dev：写测试（按 verification_strategy）→ reviewer 审 → dev 写实现 → reviewer 审
+  └── tester：写测试用例 → reviewer 审
+  ↓ 两条轨道均 PASS
+tester 执行 TC → dev 修失败 → tester 重跑
+  ↓ 全 PASS
+更新 ARCH.md + feat.md + test_case.md + git commit
+  → 交付报告
 ```
 
-Mode A（S 级小阶段）：由主 Agent 直接按上述流程串行执行，不 spawn 团队。
+各 Mode 的角色实现：
+- **Mode A**（S/XS）：主 Agent 一身担三角，串行跑完
+- **Mode B**（M）：主 Agent 充当 orchestrator，每轮用 `Task` 工具 spawn 一次性 subagent 扮演 dev / reviewer / tester
+- **Mode C**（L/XL）：主 Agent 用 `TeamCreate` 创建团队，dev/reviewer/tester 是持久成员，互发 `SendMessage` 通信
 
-**Parallel execution**: 多个无依赖的阶段可同时 spawn 各自的团队，每个团队独立运行。注意团队名需要区分（如 `p2-xxx` 和 `p4-yyy`）。
+**Parallel execution**：多个无依赖的阶段可同时执行（Mode C 用独立团队名 `p2-xxx` vs `p4-yyy`；Mode B 用 batch Task 调用；Mode A 串行不并行）。
 
 ---
 
