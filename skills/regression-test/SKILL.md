@@ -156,8 +156,16 @@ summary:
 
 - 控制台输出一行摘要 + 报告路径
 - 如有新增 FAIL，**询问用户是否立即进入 feature-exec 修复**：
-  - 是 → 把失败 TC 列表打包传给 feature-exec，作为 mini-plan
-  - 否 → 退出
+  - 是 → **生成一份 mini-plan.md**（路径：`design/<YYYYMMDD>-regression-fix-<short_sha>/mini-plan.md`），按 `xs-mini-plan-template.md` schema 填，把失败 TC 转成以下字段，然后用 `mode: xs` 调用 feature-exec：
+    | mini-plan 字段 | 从失败 TC 取什么 |
+    |---|---|
+    | 意图 | "修复 N 条回归失败 TC：TC-X / TC-Y / ..." |
+    | 修改点 | 留空（dev 在 fix-failure 任务中根据失败 TC 的"入口"字段定位）|
+    | 验收 | 每条失败 TC 对应一条："TC-X 重跑 PASS：\<原 TC 名称\>" |
+    | 范围 — 不做 | "不引入新功能；不改 Pn.md 之外的范围" |
+    | 风险 | 若失败 TC 跨多个 domain，标注 "可能多模块退化" |
+    | verification_strategy | 沿用原 TC 的 Type → 一般为 `regression-suite` |
+  - 否 → 退出，让用户自行决定后续动作
 
 ## 与其它 skill 的边界
 

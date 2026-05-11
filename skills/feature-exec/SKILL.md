@@ -257,8 +257,12 @@ mkdir -p <design_root>/.reviews
               → 循环（3 次仍失败 → 主 Agent 上报用户）
     ▼ 全部 PASS
     │
-[Wrap-up] 主 Agent 自己更新 ARCH/feat/test_case + commit
-    → 或 spawn Task(dev, 任务=final-commit) 完成（推荐：让 dev 做 commit 保持纪律）
+[Wrap-up] 默认 spawn Task(dev, 任务=final-commit) 完成 commit
+    → 备选：主 Agent 自己更新 ARCH/feat/test_case + commit
+       仅在以下任一情况启用备选：
+         (a) 用户在偏好中显式禁用 dev final-commit
+         (b) 上一次 dev subagent 输出格式异常已重试 2 次仍失败
+         (c) test_case.md 改动 < 5 行（极小，spawn 子 Agent 不划算）
     │
     ▼ 主 Agent 输出交付报告 + 清理 .reviews/ 是否保留由用户决定
 ```
@@ -308,7 +312,15 @@ Task(subagent_type="generalPurpose", description="dev 写失败单测", prompt=.
 Task(subagent_type="generalPurpose", description="tester 写 TC", prompt=...)
 ```
 
-两者结果会被批量返回。**reviewer 不能并行**：每次 review 必须读上一轮历史，需要串行。
+两者结果会被批量返回。
+
+**两条轨道的 reviewer 是各自独立的 subagent 实例**——不是同一个 reviewer 串行审两次：
+- dev 轨道：`Task(reviewer, 任务=review-tdd-red)` 然后 `Task(reviewer, 任务=review-code)`
+- tester 轨道：`Task(reviewer, 任务=review-tc)`
+
+各自有独立的 `.reviews/<task>-round<n>.md` 历史文件（task 取值 `tdd-red` / `code` / `tc`），互不影响。Mode B 没有"持久的 reviewer 角色"概念——每次 spawn 都是新实例，靠角色卡 + 历史文档保持一致性。
+
+**同轨道内的 reviewer 必须串行**：第 N 轮 review 必须读 round 1..n-1 的历史，并行 spawn 会拿不到自己上一轮的反馈。
 
 ### 关键约束（Mode B 专属）
 
