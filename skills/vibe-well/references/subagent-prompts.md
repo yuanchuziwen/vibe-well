@@ -354,9 +354,9 @@ Pn.md 在 reviewer 通知你之后再读，不要提前读。
 2. **Pn.md §变更文件 与 feat.md 交叉对比** — 识别使用相同文件的现有功能，添加回归场景
 3. **Pn.md §Risk notes** — 为每个标注的风险添加针对性测试用例
 
-测试用例格式：
+测试用例格式（与 `test_case.md` schema 对齐，Type 字段用英文）：
   TC-<n>：<名称>
-  类型：新功能 / 回归 / 风险
+  Type：feature / regression / risk
   执行方式：脚本 / 交互 / API（curl）
   入口：<URL 或入口点>
   视口：1440×900 / 375×812 / 两者（仅前端 TC 需要）
@@ -431,11 +431,11 @@ curl / API 测试：
 1. "所有测试用例已通过，可以交付了。"
 2. 为 test_case.md 格式化的最终测试用例行（见下方格式）
 
-test_case.md 行格式（后端 TC）：
-  | TC-<n> | <功能名称> | 新功能/回归/风险 | <入口点> | <简要步骤> | <预期结果> |
+test_case.md 行格式（后端 TC，Type 列与 `test_case.md` schema 一致，用英文）：
+  | TC-<n> | <功能名称> | feature/regression/risk | <入口点> | <简要步骤> | <预期结果> |
 
 前端 TC 格式（多一列 Viewport）：
-  | TC-<n> | <功能名称> | 新功能/回归/风险 | <路由> | <视口> | <简要步骤> | <预期结果> |
+  | TC-<n> | <功能名称> | feature/regression/risk | <路由> | <视口> | <简要步骤> | <预期结果> |
 
 （参考 `<project_root>/test_case.md` 里现有表头选择合适的格式。）
 

@@ -595,7 +595,7 @@ Spawn 完成后，**结束当前轮次**。成员消息会作为新的对话轮�
   "schema_version": 1,
   "phase":  { "num": 1, "name": "auth-layer", "size": "M" },
   "mode":   "B",
-  "stage":  "phase3a-tdd-red",
+  "stage":  "test-prep",
   "round":  { "pn": 2, "tdd-red": 1, "code": 0, "tc": 1 },
   "checkpoints": {
     "pn_md_approved":     "2026-05-09T03:50:00Z",

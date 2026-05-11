@@ -45,7 +45,7 @@ description: 当用户想要"开发新功能"、"开始一个功能"、"端到�
 ls design/*/.vibe-well/state.json 2>/dev/null
 ```
 
-- **找到 state.json** → 列出每个阶段当前 `stage` 字段，问用户："发现 N 个未完成阶段——\<P1: phase3b-tdd-green\>、\<P2: tester-execute\>……要继续哪个？还是开新的需求？"
+- **找到 state.json** → 列出每个阶段当前 `stage` 字段，问用户："发现 N 个未完成阶段——\<P1: impl\>、\<P2: test-run\>……要继续哪个？还是开新的需求？"（`stage` 取值见 `../feature-exec/SKILL.md` § 恢复协议的 11 个枚举）
 - **未找到 / 用户选择新需求** → 跳过本节，按正常 Stage 0 流程
 
 恢复执行时**直接跳到 Stage 4，调用 `feature-exec`**，传入 `resume: true` 标记和阶段编号。`feature-exec/SKILL.md` 的「恢复协议」章节会接管。
