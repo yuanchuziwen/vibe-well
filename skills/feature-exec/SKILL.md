@@ -39,10 +39,10 @@ description: 当用户想要"实现某个阶段"、"开始写代码"、"执行 P
 | § 预检：依赖检查 | 任何模式启动前 |
 | § 环境检测 + 模式选择 | 主 SKILL 已检测过则跳过 |
 | § Mode A | 选 A 时 |
-| § Mode B | 选 B 时（包含 Task subagent 启动模板） |
-| § Mode C | 选 C 时（包含 Step 0~4 启动步骤、上报机制、交付报告） |
+| § Mode B | 选 B 时（包含 Task subagent 启动模板 + 跨轨道 reviewer 实例说明） |
+| § Mode C | 选 C 时（Step 0~5 启动；详细监控/上报/交付协议见 `references/mode-c-deep.md`） |
 | § Hook 时点 | 检查 4 个生命周期 hook（A/B/C 共用表）|
-| § 恢复协议 | 中断后恢复时（state.json 状态机 + 9 stage 重启表）|
+| § 恢复协议 | 中断后恢复时（state.json 状态机 + 11 stage 重启表）|
 | § 参考文件 | 末尾外链 |
 
 ## 所需输入
@@ -530,7 +530,7 @@ Spawn 完成后，**结束当前轮次**。成员消息会作为新的对话轮�
 
 ---
 
-### 主 Agent 监控与介入
+__DELETE_THIS_BLOCK_START__### 主 Agent 监控与介入
 
 #### 成员 idle 的正常情况
 
@@ -580,16 +580,7 @@ Spawn 完成后，**结束当前轮次**。成员消息会作为新的对话轮�
 - 可见产出（新文件、未提交的修改、临时 commit）
 - 推测原因
 
-让用户在几个选项之间选择：
-- 继续等 / 主动重发消息
-- 从现状恢复重试（保留现有工作，重新 spawn 替换成员时手动把现状同步给新成员）
-- 降级为 Mode A 由主 Agent 接管
-- 回到某个检查点重开
-- 放弃本阶段
-
-**禁止行为**：
-- **不要**未经用户同意就重新 spawn 替换成员——新成员没有进行中的上下文（代码草稿、已审轮次、已跑 TC），硬替换会导致返工或遗漏
-- **不要**直接接手成员的角色继续推进——这会破坏 Mode C 的角色边界，且主 Agent 没有该成员积累的上下文
+__DELETE_THIS_BLOCK_END__
 
 ---
 
@@ -803,6 +794,7 @@ ls <design_root>/.vibe-well/state.json 2>/dev/null
 
 ## 参考文件
 
+- `references/mode-c-deep.md` — Mode C 详细协议（监控/上报/交付报告）
 - `../vibe-well/references/subagent-prompts.md` — dev、reviewer、tester 的启动提示模板（Mode C 用）
 - `../vibe-well/references/role-cards/{dev,reviewer,tester}.md` — 角色卡（Mode B 用，一次性 subagent 启动时引用）
 - `../requirement/references/plan-template.md` — plan.md 格式（Pn.md 也参考此模板的"Phase Details"部分；末尾「Verification Strategy 选择指南」是各模式共用）

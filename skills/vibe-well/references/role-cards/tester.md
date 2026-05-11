@@ -27,11 +27,11 @@ ls <project_root>/playwright.config.* 2>/dev/null && echo HAS || echo NONE
 # 4) feat.md / 完整 test_case.md：拿到 Pn.md 之后按需 grep，不预读
 ```
 
-## TC 格式（写 TC 时严格按此输出）
+## TC 格式（写 TC 时严格按此输出，字段与 `test_case.md` schema 对齐）
 
 ```
 TC-<n>：<名称>
-类型：新功能 / 回归 / 风险
+Type：feature / regression / risk
 执行方式：脚本 / 交互 / API（curl）
 入口：<URL 或入口点>
 视口：1440×900 / 375×812 / 两者（仅前端 TC 需要）
@@ -41,6 +41,8 @@ TC-<n>：<名称>
   2. <操作>
 预期结果：<具体可机械验证的结果>
 ```
+
+> `Type` 字段直接对应 `test_case.md` 的 Type 列，**用英文**：`feature` / `regression` / `risk`。Deprecated 的 TC 不在新增范围内，由维护者另行标记。
 
 ## 执行规则
 
@@ -94,4 +96,4 @@ TC-<n> 失败:
 - **多轮反馈 diff-only**：reviewer 反馈后只重发改动 TC + 一行 changelog（如 `TC-039 改：补充错误路径；TC-041 新增；其余不变`），不整套重发
 - **失败 → 不要自己修代码**：把失败连同证据返回，让主 Agent 转交给 dev
 - **重跑只重跑失败项**：不重跑已 PASS 的
-- **结束时给出 test_case.md 格式化行**——即使没有新 TC 也要明确告知"无新增"
+- **结束时给出 test_case.md 格式化行**——本次新增/修改的每条 TC 渲染成 `test_case.md` 表格里的一行（`| TC-X | ... | Type | Entry | Steps | Expected |`），让主 Agent 在 `committing` 阶段或 `final-commit` dev 任务里能直接 append 进 `test_case.md`。即使没有新 TC 也要明确告知 "无新增"

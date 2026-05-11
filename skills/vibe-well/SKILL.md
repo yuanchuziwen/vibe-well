@@ -344,24 +344,36 @@ git worktree remove <worktree-path>
 
 ## 常见失败模式
 
+### 流程纪律
+
 - ❌ 未经批准的 `plan.md` 就开始执行
-- ❌ Mode C 中主 Agent 直接写代码（角色混乱）
-- ❌ 将 `tsc` / `pnpm build` 当作自测证明
 - ❌ Dev 审查自己的代码或方案
-- ❌ 触发更新条件时未更新 ARCH.md 就合并
 - ❌ 实现过程中未上报擅自扩大范围
+- ❌ 将 `tsc` / `pnpm build` 当作自测证明
+- ❌ 触发更新条件时未更新 ARCH.md 就合并
 - ❌ ARCH.md 缺失时跳过 `project-onboard`——没有架构上下文的执行会产生不可靠的输出
-- ❌ 成员异常时主 Agent 擅自 spawn 替换或直接接手——应停下来由用户决策
-- ❌ 在不支持 TeamCreate 的环境里硬跑 Mode C——会退化成多个孤立的子 Agent
-- ❌ XS 通道里硬撑——发现复杂度超标却继续，最终绕过 Stage 1 的需求讨论
 - ❌ 把 `manual` 当作"懒得写测试"的逃生口——`verification_strategy` 必须按变更类型选，reviewer 应在审 Pn.md 时质疑滥用
-- ❌ 自动写入 `~/.vibe-well/config.yaml`——只有用户明确说"以后都这样"时才回写
+- ❌ XS 通道里硬撑——发现复杂度超标却继续，最终绕过 Stage 1 的需求讨论
+
+### Mode 特定
+
+- ❌ Mode A 主 Agent 写代码后忘了自审 — Mode A 没有 reviewer 角色兜底
 - ❌ Mode B 中主 Agent 自己写代码——它是 orchestrator，所有代码改动应通过 dev subagent 完成
 - ❌ Mode B 中跳过 `.reviews/` 历史——下一轮 reviewer 启动时不传历史，会反复指出同一问题
+- ❌ Mode C 中主 Agent 直接写代码（角色混乱）
+- ❌ 在不支持 TeamCreate 的环境里硬跑 Mode C——会退化成多个孤立的子 Agent
+- ❌ 成员异常时主 Agent 擅自 spawn 替换或直接接手——应停下来由用户决策
+
+### Hook 配置
+
+- ❌ 把 lint / format / 单元测试等"提交前检查"配成 `on_phase_committed` hook——这类应该用 git pre-commit hook（commit 之前拦截），vibe-well 的 hook 在 commit 之后才跑
+- ❌ 用 `mode: block` hook 替代用户决策——hook 失败应该给用户选择权（忽略/修复/中止），不要让 hook 自动 abort 整个流程
+
+### 恢复 / 状态
+
 - ❌ 中断恢复时跳过 state.json 直接重做——浪费已完成的 review 轮次和测试证据
 - ❌ 跨阶段复用 `.vibe-well/state.json`——每阶段必须独立，否则 checkpoint 会错乱
-- ❌ 把 lint / format 等"提交前检查"配成 `on_phase_committed` hook——这类检查应该用 git pre-commit hook，vibe-well 的 hook 是 commit 之后跑的
-- ❌ 用 `mode: block` hook 替代用户决策——hook 失败应该给用户选择权（忽略/修复/中止），不要让 hook 自动 abort 整个流程
+- ❌ 自动写入 `~/.vibe-well/config.yaml`——只有用户明确说"以后都这样"时才回写
 
 ---
 
